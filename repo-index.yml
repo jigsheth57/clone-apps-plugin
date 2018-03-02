@@ -1,0 +1,23 @@
+- name: Clone Apps
+  description: Export & import apps metadata (including service instances info), droplets & src code
+  version: _TAG_
+  created: 2018-03-01T00:00:00Z
+  updated: 2018-03-01T00:00:00Z
+  company:
+  authors:
+  - name: Jignesh Sheth
+    homepage: https://github.com/jigsheth57/
+    contact: jsheth@pivotal.io
+  binaries:
+  - platform: osx
+    url: https://github.com/jigsheth57/clone-apps-plugin/blob/master/bin/osx/clone-apps-plugin?raw=true
+    checksum: osx-sha1
+  - platform: win64
+    url: https://github.com/jigsheth57/trueupreport-plugin/blob/master/bin/win64/clone-apps-plugin.exe?raw=true
+    checksum: win64-sha1
+  - platform: win32
+    url: https://github.com/jigsheth57/trueupreport-plugin/blob/master/bin/win32/clone-apps-plugin.exe?raw=true
+    checksum: win32-sha1
+  - platform: linux64
+    url: https://github.com/jigsheth57/trueupreport-plugin/blob/master/bin/linux64/clone-apps-plugin?raw=true
+    checksum: linux64-sha1
