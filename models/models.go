@@ -96,17 +96,17 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	for _, org := range *orgs {
 		for _, space := range org.Spaces {
 			i += len(space.Apps)*2
-			download := (space.Name == "jigsheth")
+			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
-				if(download) {
-					go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/droplet/download", app.Name+"_"+app.Guid+".droplet", chBits)
-					go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/download", app.Name+"_"+app.Guid+".src", chBits)
-				}
+				//if(download) {
+				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/droplet/download", app.Name+"_"+app.Guid+".droplet", chBits)
+				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/download", app.Name+"_"+app.Guid+".src", chBits)
+				//}
 			}
 		}
 	}
 	fmt.Println("Number of app bits to download ", i)
-	i = 4
+	//i = 4
 	for msg := range chBits {
 		i -= 1
 		fmt.Println("Wrote file: ", msg)
