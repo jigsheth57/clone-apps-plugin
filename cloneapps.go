@@ -60,17 +60,26 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 					},
 				},
 			},
+			{
+				Name:     "import-apps",
+				HelpText: "Import apps metadata (including service instances info), droplets & src code",
+				UsageDetails: plugin.Usage{
+					Usage: "cf import-apps [-o orgName]",
+					Options: map[string]string{
+						"o": "organization",
+					},
+				},
+			},
 		},
 	}
 }
 
-//CloneAppsCmd doer
-func (cmd *CloneAppsCmd) CloneAppsCmd(args []string) {
+//ExportAppsCmd doer
+func (cmd *CloneAppsCmd) ExportAppsCmd(args []string) {
 	flagVals := ParseFlags(args)
 
-	var orgs []models.Org
+	var orgs models.Orgs
 	var err error
-	var exportMeta models.Report
 
 	if flagVals.OrgName != "" {
 		org, err := cmd.getOrg(flagVals.OrgName)
@@ -87,12 +96,40 @@ func (cmd *CloneAppsCmd) CloneAppsCmd(args []string) {
 		}
 	}
 
-	exportMeta.Orgs = orgs
 	if flagVals.Download == "download" {
-		fmt.Println(exportMeta.MetaAndBits(cmd.apiHelper))
+		fmt.Println(orgs.ExportMetaAndBits(cmd.apiHelper))
 	} else {
-		fmt.Println(exportMeta.MetaOnly())
+		fmt.Println(orgs.ExportMetaOnly())
 	}
+}
+
+func (cmd *CloneAppsCmd) ImportAppsCmd(args []string) {
+
+	//var err error
+	//var importMeta models.Report
+
+	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper))
+	//if flagVals.OrgName != "" {
+	//	org, err := cmd.getOrg(flagVals.OrgName)
+	//	if nil != err {
+	//		fmt.Println(err)
+	//		os.Exit(1)
+	//	}
+	//	orgs = append(orgs, org)
+	//} else {
+	//	orgs, err = cmd.getOrgs()
+	//	if nil != err {
+	//		fmt.Println(err)
+	//		os.Exit(1)
+	//	}
+	//}
+	//
+	//importMeta.Orgs = orgs
+	//if flagVals.Download == "download" {
+	//	fmt.Println(exportMeta.MetaAndBits(cmd.apiHelper))
+	//} else {
+	//	fmt.Println(importMeta.MetaOnly())
+	//}
 }
 
 func (cmd *CloneAppsCmd) getOrgs() ([]models.Org, error) {
@@ -203,7 +240,11 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 func (cmd *CloneAppsCmd) Run(cli plugin.CliConnection, args []string) {
 	if args[0] == "export-apps" {
 		cmd.apiHelper = apihelper.New(cli)
-		cmd.CloneAppsCmd(args)
+		cmd.ExportAppsCmd(args)
+	}
+	if args[0] == "import-apps" {
+		cmd.apiHelper = apihelper.New(cli)
+		cmd.ImportAppsCmd(args)
 	}
 }
 
