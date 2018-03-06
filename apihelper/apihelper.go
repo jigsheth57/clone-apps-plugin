@@ -115,7 +115,7 @@ type CFAPIHelper interface {
 	GetOrgs() (Orgs, error)
 	GetOrg(string) (Organization, error)
 	GetDomainGuid(name string) (string, error)
-	GetServiceInstanceGuid(name string) (string, error)
+	GetServiceInstanceGuid(name string, stype string) (string, error)
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(string) (Apps, Services, error)
@@ -123,7 +123,7 @@ type CFAPIHelper interface {
 	PutBlob(blobURL string, filename string, c chan string)
 	CheckOrg(name string, create bool ) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error)
-	CheckApp(mapp App, spaceguid string, create bool ) (ImportedApp, error)
+	CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error)
 	CheckServiceInstance( service Service, spaceguid string, create bool ) (ImportedService, error)
 }
 
@@ -219,11 +219,30 @@ func (api *APIHelper) GetDomainGuid(name string) (string, error) {
 }
 
 //GetServiceInstanceGuid returns a service instance guid
-func (api *APIHelper) GetServiceInstanceGuid(name string) (string, error) {
-	var service plugin_models.GetService_Model
-	service, err := api.cli.GetService(name)
+func (api *APIHelper) GetServiceInstanceGuid(name string, stype string) (string, error) {
+	query := fmt.Sprintf("name:%s", name)
+	var path string
+	if (stype == "managed") {
+		path = fmt.Sprintf("/v2/service_instances?q=%s", url.QueryEscape(query))
+	}
+	if (stype == "user_provided") {
+		path = fmt.Sprintf("/v2/user_provided_service_instances?q=%s", url.QueryEscape(query))
+	}
+
+	siJSON, err := cfcurl.Curl(api.cli, path)
 	check(err)
-	return service.Guid, nil
+
+	results := int(siJSON["total_results"].(float64))
+	if results == 0 {
+		return "", ErrManagedServiceNotFound
+	}
+
+	siResource := siJSON["resources"].([]interface{})[0]
+	theSI := siResource.(map[string]interface{})
+	metadata := theSI["metadata"].(map[string]interface{})
+	guid := metadata["guid"].(string)
+
+	return guid, nil
 }
 
 //getServicePlanGuid returns a managed service plan guid
@@ -570,7 +589,7 @@ type appInput struct {
 	EnableSsh				bool `json:"enable_ssh"`
 	EnviornmentVar			map[string]interface{} `json:"environment_json"`
 }
-func (api *APIHelper) CheckApp(mapp App, spaceguid string, create bool ) (ImportedApp, error) {
+func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error) {
 	var app plugin_models.GetAppModel
 	var iapp ImportedApp
 	app, err := api.cli.GetApp(mapp.Name)
@@ -611,7 +630,7 @@ func (api *APIHelper) CheckApp(mapp App, spaceguid string, create bool ) (Import
 			fmt.Println("Route ("+url.(string)+") bounded to app "+mapp.Name+".")
 		}
 		for _, siname := range mapp.ServiceNames {
-			siguid, err := api.GetServiceInstanceGuid(siname.(string))
+			siguid, err := getServiceInstanceGuid(rservices, siname.(string))
 			check(err)
 			api.bindService(siguid,iapp.Guid)
 			fmt.Println("Service instance ("+siname.(string)+") bounded to app "+mapp.Name+".")
@@ -623,6 +642,15 @@ func (api *APIHelper) CheckApp(mapp App, spaceguid string, create bool ) (Import
 		}
 	}
 	return iapp, nil
+}
+
+func getServiceInstanceGuid (rservices IServices, name string) (string, error) {
+	for _, service := range rservices {
+		if (service.Name == name) {
+			return service.Guid, nil
+		}
+	}
+	return "", ErrManagedServiceNotFound
 }
 
 type routeInput struct {

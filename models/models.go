@@ -136,6 +136,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 				Name:output.Name,
 			}
 			var iservices IServices
+			var rservices apihelper.IServices
 			for _, service := range space.Services {
 				mservice := apihelper.Service{
 					InstanceName: service.InstanceName,
@@ -151,7 +152,12 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 					Guid:output.Guid,
 					Name:output.Name,
 				}
+				rservice := apihelper.ImportedService{
+					Guid:output.Guid,
+					Name:output.Name,
+				}
 				iservices = append(iservices, iservice)
+				rservices = append(rservices, rservice)
 			}
 			ispace.Services = iservices
 			var iapps IApps
@@ -173,7 +179,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 					URLs:app.URLs,
 					ServiceNames:app.ServiceNames,
 				}
-				output, err := apiHelper.CheckApp(mapp,ispace.Guid,true)
+				output, err := apiHelper.CheckApp(mapp,rservices,ispace.Guid,true)
 				check(err)
 				iapp := ImportedApp{
 					Guid:output.Guid,
