@@ -480,6 +480,7 @@ type spaceInput struct {
 func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error) {
 	var space plugin_models.GetSpace_Model
 	var ispace ImportedSpace
+	fmt.Println("Looking for space: "+name)
 	space, err := api.cli.GetSpace(name)
 	if nil != err && create {
 		body := spaceInput{
@@ -487,6 +488,7 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 			Guid:orgguid,
 		}
 		bodyJSON, _ := json.Marshal(body)
+		fmt.Println("Creating space: "+name+" with payload: "+string(bodyJSON))
 		result, _ := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
 		metadata := result["metadata"].(map[string]interface{})
 		ispace = ImportedSpace{
@@ -494,6 +496,7 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 			Guid: metadata["guid"].(string),
 		}
 	} else {
+		fmt.Println("Found existing space: "+name)
 		ispace = ImportedSpace{
 			Name:name,
 			Guid:space.Guid,
