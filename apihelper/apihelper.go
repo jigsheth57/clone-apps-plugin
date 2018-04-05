@@ -452,19 +452,28 @@ type orgInput struct {
 func (api *APIHelper) CheckOrg(name string, create bool ) (ImportedOrg, error) {
 	var org plugin_models.GetOrg_Model
 	var iorg ImportedOrg
+	fmt.Println("Looking for org: "+name)
 	org, err := api.cli.GetOrg(name)
 	if nil != err && create {
 		body := orgInput{
 			Name:name,
 		}
 		bodyJSON, _ := json.Marshal(body)
-		result, _ := httpRequest(api,"POST","/v2/organizations",string(bodyJSON))
-		metadata := result["metadata"].(map[string]interface{})
-		iorg = ImportedOrg{
-			Name: name,
-			Guid: metadata["guid"].(string),
+		fmt.Println("Creating org: "+name+" with payload: "+string(bodyJSON))
+		result, err := httpRequest(api,"POST","/v2/organizations",string(bodyJSON))
+		if nil != err {
+			fmt.Println("Error creating org: "+name)
+			fmt.Println(err)
+		}
+		if nil != result {
+			metadata := result["metadata"].(map[string]interface{})
+			iorg = ImportedOrg{
+				Name: name,
+				Guid: metadata["guid"].(string),
+			}
 		}
 	} else {
+		fmt.Println("Found existing org: "+name)
 		iorg = ImportedOrg{
 			Name:name,
 			Guid:org.Guid,
@@ -489,11 +498,18 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 		}
 		bodyJSON, _ := json.Marshal(body)
 		fmt.Println("Creating space: "+name+" with payload: "+string(bodyJSON))
-		result, _ := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
-		metadata := result["metadata"].(map[string]interface{})
-		ispace = ImportedSpace{
-			Name: name,
-			Guid: metadata["guid"].(string),
+		result, err := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
+		if nil != err {
+			fmt.Println("Error creating space: "+name)
+			fmt.Println(err)
+		}
+		if nil != result {
+			metadata := result["metadata"].(map[string]interface{})
+			ispace = ImportedSpace{
+				Name: name,
+				Guid: metadata["guid"].(string),
+			}
+
 		}
 	} else {
 		fmt.Println("Found existing space: "+name)
@@ -540,13 +556,20 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 				ServicePlanGuid:spguid,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			result, _ := httpRequest(api,"POST","/v2/service_instances?accepts_incomplete=true",string(bodyJSON))
-			metadata := result["metadata"].(map[string]interface{})
-			iservice = ImportedService{
-				Name: service.InstanceName,
-				Guid: metadata["guid"].(string),
+			fmt.Println("Creating service instance "+service.InstanceName+" with payload: "+string(bodyJSON))
+			result, err := httpRequest(api,"POST","/v2/service_instances?accepts_incomplete=true",string(bodyJSON))
+			if nil != err {
+				fmt.Println("Error creating service instance: "+service.InstanceName)
+				fmt.Println(err)
 			}
-			fmt.Println("Service instance "+service.InstanceName+" created.")
+			if nil != result {
+				metadata := result["metadata"].(map[string]interface{})
+				iservice = ImportedService{
+					Name: service.InstanceName,
+					Guid: metadata["guid"].(string),
+				}
+				fmt.Println("Service instance "+service.InstanceName+" created.")
+			}
 		}
 	}
 	if service.Type == "user_provided" {
@@ -567,13 +590,21 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 				SyslogDrain:service.SyslogDrain,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			result, _ := httpRequest(api,"POST","/v2/user_provided_service_instances",string(bodyJSON))
-			metadata := result["metadata"].(map[string]interface{})
-			iservice = ImportedService{
-				Name: service.InstanceName,
-				Guid: metadata["guid"].(string),
+			fmt.Println("Creating service instance "+service.InstanceName+" with payload: "+string(bodyJSON))
+			result, err := httpRequest(api,"POST","/v2/user_provided_service_instances",string(bodyJSON))
+			if nil != err {
+				fmt.Println("Error creating service instance: "+service.InstanceName)
+				fmt.Println(err)
 			}
-			fmt.Println("Service instance "+service.InstanceName+" created.")
+			if nil != result {
+				metadata := result["metadata"].(map[string]interface{})
+				iservice = ImportedService{
+					Name: service.InstanceName,
+					Guid: metadata["guid"].(string),
+				}
+				fmt.Println("Service instance "+service.InstanceName+" created.")
+
+			}
 		}
 	}
 
@@ -616,6 +647,7 @@ type appInput struct {
 func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error) {
 	var app plugin_models.GetAppModel
 	var iapp ImportedApp
+	fmt.Println("Looking for app: "+mapp.Name)
 	app, err := api.cli.GetApp(mapp.Name)
 	if nil != err && create {
 		body := appInput{
@@ -634,14 +666,21 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 			EnviornmentVar:mapp.EnviornmentVar,
 		}
 		bodyJSON, _ := json.Marshal(body)
-		result, _ := httpRequest(api,"POST","/v2/apps",string(bodyJSON))
-		fmt.Println("App "+mapp.Name+" created.")
-		metadata := result["metadata"].(map[string]interface{})
-		iapp = ImportedApp{
-			Name:mapp.Name,
-			Guid:metadata["guid"].(string),
-			Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
-			Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+		fmt.Println("Creating app ("+mapp.Name+") with payload: "+string(bodyJSON))
+		result, err := httpRequest(api,"POST","/v2/apps",string(bodyJSON))
+		if nil != err {
+			fmt.Println("Error creating app: "+mapp.Name)
+			fmt.Println(err)
+		}
+		if nil != result {
+			metadata := result["metadata"].(map[string]interface{})
+			iapp = ImportedApp{
+				Name:mapp.Name,
+				Guid:metadata["guid"].(string),
+				Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
+				Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+			}
+			fmt.Println("App "+mapp.Name+" created.")
 		}
 		for _, url := range mapp.URLs {
 			s := strings.SplitN(url.(string),".",2)
@@ -660,6 +699,7 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 			fmt.Println("Service instance ("+siname.(string)+") bounded to app "+mapp.Name+".")
 		}
 	} else {
+		fmt.Println("Found existing app: "+mapp.Name)
 		iapp = ImportedApp{
 			Name:mapp.Name,
 			Guid:app.Guid,
@@ -683,15 +723,44 @@ type routeInput struct {
 	Hostname	string `json:"host"`
 }
 func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname string ) (string, error) {
-	body := routeInput{
-		DomainGuid:domainguid,
-		SpaceGuid:spaceguid,
-		Hostname:hostname,
+	var rguid string
+	create := false
+	query1 := fmt.Sprintf("host:%s", hostname)
+	query2 := fmt.Sprintf("domain_guid:%s", domainguid)
+	path := fmt.Sprintf("/v2/routes?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
+	routeJSON, err := cfcurl.Curl(api.cli, path)
+	if nil != err {
+		create = true
+	} else {
+		results := int(routeJSON["total_results"].(float64))
+		if results != 0 {
+			routeResource := routeJSON["resources"].([]interface{})[0]
+			theRoute := routeResource.(map[string]interface{})
+			metadata := theRoute["metadata"].(map[string]interface{})
+			rguid = metadata["guid"].(string)
+			create = false
+			fmt.Println("Found existing route with hostname: "+hostname)
+		}
 	}
-	bodyJSON, _ := json.Marshal(body)
-	result, _ := httpRequest(api,"POST","/v2/routes",string(bodyJSON))
-	metadata := result["metadata"].(map[string]interface{})
-	return metadata["guid"].(string), nil
+	if create {
+		body := routeInput{
+			DomainGuid:domainguid,
+			SpaceGuid:spaceguid,
+			Hostname:hostname,
+		}
+		bodyJSON, _ := json.Marshal(body)
+		fmt.Println("Creating route with payload: "+string(bodyJSON))
+		result, err := httpRequest(api,"POST","/v2/routes",string(bodyJSON))
+		if nil != err {
+			fmt.Println("Error creating route: "+hostname)
+			fmt.Println(err)
+		}
+		if nil != result {
+			metadata := result["metadata"].(map[string]interface{})
+			rguid = metadata["guid"].(string)
+		}
+	}
+	return rguid, nil
 }
 
 func (api *APIHelper) bindRoute(routeguid string, appguid string ) (error) {
@@ -709,8 +778,12 @@ func httpRequest(api *APIHelper, method string, url string, body string) (map[st
 	req.Header.Set("Authorization",accessToken)
 	req.Header.Set("Content-Type", "application/json")
 	res, _ := client.Do(req)
+	stscode := res.StatusCode
 	response, err := ioutil.ReadAll(res.Body)
 	check(err)
+	if (stscode >= 400) {
+		return nil, errors.New(string(response))
+	}
 	var f interface{}
 	err = json.Unmarshal(response, &f)
 	check(err)
