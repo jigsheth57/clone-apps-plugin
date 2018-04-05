@@ -491,45 +491,53 @@ type spaceInput struct {
 }
 func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error) {
 	var ispace ImportedSpace
+	var total_results int
 	fmt.Println("Looking for space: "+name)
 	query := fmt.Sprintf("name:%s", name)
 	path := fmt.Sprintf("/v2/organizations/"+orgguid+"/spaces?q=%s", url.QueryEscape(query))
 	spaceJSON, err := cfcurl.Curl(api.cli, path)
-	if nil != err && create {
-		body := spaceInput{
-			Name:name,
-			Guid:orgguid,
-		}
-		bodyJSON, _ := json.Marshal(body)
-		fmt.Println("Creating space ("+name+") with payload: "+string(bodyJSON))
-		result, err := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
-		if nil != err {
-			fmt.Println("Error creating space: "+name)
-			fmt.Println(err)
-			ispace = ImportedSpace{
-				Name: name,
+	if nil == err {
+		total_results = int(spaceJSON["total_results"].(float64))
+		if total_results == 0 && create {
+			body := spaceInput{
+				Name:name,
+				Guid:orgguid,
 			}
-		}
-		if nil != result {
-			metadata := result["metadata"].(map[string]interface{})
-			ispace = ImportedSpace{
-				Name: name,
-				Guid: metadata["guid"].(string),
+			bodyJSON, _ := json.Marshal(body)
+			fmt.Println("Creating space ("+name+") with payload: "+string(bodyJSON))
+			result, err := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
+			if nil != err {
+				fmt.Println("Error creating space: "+name)
+				fmt.Println(err)
+				ispace = ImportedSpace{
+					Name: name,
+				}
+			}
+			if nil != result {
+				metadata := result["metadata"].(map[string]interface{})
+				ispace = ImportedSpace{
+					Name: name,
+					Guid: metadata["guid"].(string),
+				}
+			}
+		} else {
+			if total_results != 0 {
+				spaceResource := spaceJSON["resources"].([]interface{})[0]
+				theSpace := spaceResource.(map[string]interface{})
+				metadata := theSpace["metadata"].(map[string]interface{})
+				fmt.Println("Found existing space: "+name)
+				ispace = ImportedSpace{
+					Name:name,
+					Guid:metadata["guid"].(string),
+				}
 			}
 		}
 	} else {
-		results := int(spaceJSON["total_results"].(float64))
-		if results != 0 {
-			spaceResource := spaceJSON["resources"].([]interface{})[0]
-			theSpace := spaceResource.(map[string]interface{})
-			metadata := theSpace["metadata"].(map[string]interface{})
-			fmt.Println("Found existing space: "+name)
-			ispace = ImportedSpace{
-				Name:name,
-				Guid:metadata["guid"].(string),
-			}
+		ispace = ImportedSpace{
+			Name:name,
 		}
 	}
+
 	return ispace, nil
 }
 
@@ -657,66 +665,83 @@ type appInput struct {
 	EnviornmentVar			map[string]interface{} `json:"environment_json"`
 }
 func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error) {
-	var app plugin_models.GetAppModel
 	var iapp ImportedApp
+	var total_results int
 	fmt.Println("Looking for app: "+mapp.Name)
-	app, err := api.cli.GetApp(mapp.Name)
-	if nil != err && create {
-		body := appInput{
-			SpaceGuid:spaceguid,
-			Name:mapp.Name,
-			Memory:mapp.Memory,
-			Instances:mapp.Instances,
-			DiskQuota:mapp.DiskQuota,
-			State:mapp.State,
-			Command:mapp.Command,
-			HealthCheckType:mapp.HealthCheckType,
-			HealthCheckTimeout:180,
-			HealthCheckHttpEndpoint:mapp.HealthCheckHttpEndpoint,
-			Diego:mapp.Diego,
-			EnableSsh:mapp.EnableSsh,
-			EnviornmentVar:mapp.EnviornmentVar,
-		}
-		bodyJSON, _ := json.Marshal(body)
-		fmt.Println("Creating app ("+mapp.Name+") with payload: "+string(bodyJSON))
-		result, err := httpRequest(api,"POST","/v2/apps",string(bodyJSON))
-		if nil != err {
-			fmt.Println("Error creating app: "+mapp.Name)
-			fmt.Println(err)
-		}
-		if nil != result {
-			metadata := result["metadata"].(map[string]interface{})
-			iapp = ImportedApp{
+	query1 := fmt.Sprintf("name:%s", mapp.Name)
+	query2 := fmt.Sprintf("space_guid:%s", spaceguid)
+	path := fmt.Sprintf("/v2/apps?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
+	appJSON, err := cfcurl.Curl(api.cli, path)
+	if nil == err {
+		total_results = int(appJSON["total_results"].(float64))
+		if total_results == 0 && create {
+			body := appInput{
+				SpaceGuid:spaceguid,
 				Name:mapp.Name,
-				Guid:metadata["guid"].(string),
-				Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
-				Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+				Memory:mapp.Memory,
+				Instances:mapp.Instances,
+				DiskQuota:mapp.DiskQuota,
+				State:mapp.State,
+				Command:mapp.Command,
+				HealthCheckType:mapp.HealthCheckType,
+				HealthCheckTimeout:180,
+				HealthCheckHttpEndpoint:mapp.HealthCheckHttpEndpoint,
+				Diego:mapp.Diego,
+				EnableSsh:mapp.EnableSsh,
+				EnviornmentVar:mapp.EnviornmentVar,
 			}
-			fmt.Println("App "+mapp.Name+" created.")
-		}
-		for _, url := range mapp.URLs {
-			s := strings.SplitN(url.(string),".",2)
-			domainguid, err := api.GetDomainGuid(s[1])
-			check(err)
-			routeguid, err := api.createRoute(domainguid,spaceguid,s[0])
-			check(err)
-			fmt.Println("Route ("+url.(string)+") created.")
-			api.bindRoute(routeguid,iapp.Guid)
-			fmt.Println("Route ("+url.(string)+") bounded to app "+mapp.Name+".")
-		}
-		for _, siname := range mapp.ServiceNames {
-			siguid, err := getServiceInstanceGuid(rservices, siname.(string))
-			check(err)
-			api.bindService(siguid,iapp.Guid)
-			fmt.Println("Service instance ("+siname.(string)+") bounded to app "+mapp.Name+".")
+			bodyJSON, _ := json.Marshal(body)
+			fmt.Println("Creating app ("+mapp.Name+") with payload: "+string(bodyJSON))
+			result, err := httpRequest(api,"POST","/v2/apps",string(bodyJSON))
+			if nil != err {
+				fmt.Println("Error creating app: "+mapp.Name)
+				fmt.Println(err)
+			}
+			if nil != result {
+				metadata := result["metadata"].(map[string]interface{})
+				iapp = ImportedApp{
+					Name:mapp.Name,
+					Guid:metadata["guid"].(string),
+					Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
+					Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+				}
+				fmt.Println("App "+mapp.Name+" created.")
+			}
+			for _, url := range mapp.URLs {
+				s := strings.SplitN(url.(string),".",2)
+				domainguid, err := api.GetDomainGuid(s[1])
+				check(err)
+				routeguid, err := api.createRoute(domainguid,spaceguid,s[0])
+				check(err)
+				fmt.Println("Route ("+url.(string)+") created.")
+				api.bindRoute(routeguid,iapp.Guid)
+				fmt.Println("Route ("+url.(string)+") bounded to app "+mapp.Name+".")
+			}
+			for _, siname := range mapp.ServiceNames {
+				siguid, err := getServiceInstanceGuid(rservices, siname.(string))
+				check(err)
+				api.bindService(siguid,iapp.Guid)
+				fmt.Println("Service instance ("+siname.(string)+") bounded to app "+mapp.Name+".")
+			}
+		} else {
+			if total_results != 0 {
+				appResource := appJSON["resources"].([]interface{})[0]
+				theApp := appResource.(map[string]interface{})
+				metadata := theApp["metadata"].(map[string]interface{})
+				fmt.Println("Found existing app: "+mapp.Name)
+				iapp = ImportedApp{
+					Name:    mapp.Name,
+					Guid:    metadata["guid"].(string),
+					Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
+					Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
+				}
+			}
 		}
 	} else {
-		fmt.Println("Found existing app: "+mapp.Name)
 		iapp = ImportedApp{
-			Name:mapp.Name,
-			Guid:app.Guid,
-			Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
-			Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+			Name:    mapp.Name,
+			Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
+			Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
 		}
 	}
 	return iapp, nil
@@ -738,41 +763,39 @@ type routeInput struct {
 }
 func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname string ) (string, error) {
 	var rguid string
-	create := false
 	query1 := fmt.Sprintf("host:%s", hostname)
 	query2 := fmt.Sprintf("domain_guid:%s", domainguid)
 	path := fmt.Sprintf("/v2/routes?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
+	fmt.Println("Looking for route: "+hostname+" under domain("+domainguid+")")
 	routeJSON, err := cfcurl.Curl(api.cli, path)
-	if nil != err {
-		create = true
-	} else {
-		results := int(routeJSON["total_results"].(float64))
-		if results != 0 {
+	if nil == err {
+		total_results := int(routeJSON["total_results"].(float64))
+		if total_results != 0 {
 			routeResource := routeJSON["resources"].([]interface{})[0]
 			theRoute := routeResource.(map[string]interface{})
 			metadata := theRoute["metadata"].(map[string]interface{})
 			rguid = metadata["guid"].(string)
-			create = false
 			fmt.Println("Found existing route with hostname: "+hostname)
+		} else {
+			body := routeInput{
+				DomainGuid:domainguid,
+				SpaceGuid:spaceguid,
+				Hostname:hostname,
+			}
+			bodyJSON, _ := json.Marshal(body)
+			fmt.Println("Creating route with payload: "+string(bodyJSON))
+			result, err := httpRequest(api,"POST","/v2/routes",string(bodyJSON))
+			if nil != err {
+				fmt.Println("Error creating route: "+hostname)
+				fmt.Println(err)
+			}
+			if nil != result {
+				metadata := result["metadata"].(map[string]interface{})
+				rguid = metadata["guid"].(string)
+			}
 		}
-	}
-	if create {
-		body := routeInput{
-			DomainGuid:domainguid,
-			SpaceGuid:spaceguid,
-			Hostname:hostname,
-		}
-		bodyJSON, _ := json.Marshal(body)
-		fmt.Println("Creating route with payload: "+string(bodyJSON))
-		result, err := httpRequest(api,"POST","/v2/routes",string(bodyJSON))
-		if nil != err {
-			fmt.Println("Error creating route: "+hostname)
-			fmt.Println(err)
-		}
-		if nil != result {
-			metadata := result["metadata"].(map[string]interface{})
-			rguid = metadata["guid"].(string)
-		}
+	} else {
+		return "", err
 	}
 	return rguid, nil
 }
