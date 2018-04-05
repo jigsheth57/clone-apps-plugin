@@ -217,7 +217,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 		}
 	}
 
-	b, _ := json.Marshal(iorgs)
+	b, _ := json.MarshalIndent(iorgs,"","\t")
 	err := ioutil.WriteFile("imported_apps.json", b, 0644)
 	check(err)
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."

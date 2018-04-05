@@ -2,8 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="24a23287-1501-4246-bc7e-de260ad570a4" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change beforePath="$PROJECT_DIR$/apihelper/apihelper.go" afterPath="$PROJECT_DIR$/apihelper/apihelper.go" />
+      <change beforePath="$PROJECT_DIR$/cloneapps.go" afterPath="$PROJECT_DIR$/cloneapps.go" />
+      <change beforePath="$PROJECT_DIR$/models/models.go" afterPath="$PROJECT_DIR$/models/models.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -13,63 +14,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="FileEditorManager">
-    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="models.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/models/models.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="366">
-              <caret line="182" column="45" lean-forward="false" selection-start-line="182" selection-start-column="45" selection-end-line="182" selection-end-column="45" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="cloneapps.go" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/cloneapps.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2411">
-              <caret line="251" column="16" lean-forward="false" selection-start-line="251" selection-start-column="16" selection-end-line="251" selection-end-column="16" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="apihelper.go" pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1056">
-              <caret line="646" column="22" lean-forward="false" selection-start-line="646" selection-start-column="22" selection-end-line="646" selection-end-column="22" />
-              <folding>
-                <element signature="e#19#292#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="README.md" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="SPLIT">
-              <first_editor relative-caret-position="-514">
-                <caret line="3" column="0" lean-forward="false" selection-start-line="3" selection-start-column="0" selection-end-line="3" selection-end-column="0" />
-                <folding />
-              </first_editor>
-              <second_editor />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="build-all.sh" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/build-all.sh">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="105">
-              <caret line="7" column="26" lean-forward="false" selection-start-line="7" selection-start-column="26" selection-end-line="7" selection-end-column="26" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-    </leaf>
+    <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -97,13 +42,13 @@
       <list>
         <option value="$PROJECT_DIR$/apihelper/cfcurl.go" />
         <option value="$PROJECT_DIR$/cfcurl/cfcurl.go" />
-        <option value="$PROJECT_DIR$/cloneapps.go" />
         <option value="$PROJECT_DIR$/README.md" />
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/build-all.sh" />
         <option value="$PROJECT_DIR$/repo-index.yml" />
         <option value="$PROJECT_DIR$/models/models.go" />
         <option value="$PROJECT_DIR$/apihelper/apihelper.go" />
+        <option value="$PROJECT_DIR$/cloneapps.go" />
       </list>
     </option>
   </component>
@@ -146,6 +91,11 @@
               <item name="clone-apps-plugin" type="b2602c69:ProjectViewProjectNode" />
               <item name="clone-apps-plugin" type="462c0819:PsiDirectoryNode" />
               <item name="apihelper" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="clone-apps-plugin" type="b2602c69:ProjectViewProjectNode" />
+              <item name="clone-apps-plugin" type="462c0819:PsiDirectoryNode" />
+              <item name="bin" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="clone-apps-plugin" type="b2602c69:ProjectViewProjectNode" />
@@ -195,9 +145,8 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="23" width="1440" height="797" extended-state="0" />
-    <editor active="true" />
     <layout>
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -250,7 +199,7 @@
         <state relative-caret-position="6510">
           <caret line="451" column="22" lean-forward="false" selection-start-line="451" selection-start-column="22" selection-end-line="451" selection-end-column="22" />
           <folding>
-            <element signature="e#19#292#0" expanded="true" />
+            <element signature="e#19#306#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -260,7 +209,7 @@
         <state relative-caret-position="3285">
           <caret line="219" column="0" lean-forward="true" selection-start-line="219" selection-start-column="0" selection-end-line="219" selection-end-column="0" />
           <folding>
-            <element signature="e#19#292#0" expanded="true" />
+            <element signature="e#19#306#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -503,29 +452,29 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/cloneapps.go">
+    <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2411">
-          <caret line="251" column="16" lean-forward="false" selection-start-line="251" selection-start-column="16" selection-end-line="251" selection-end-column="16" />
-          <folding />
+        <state relative-caret-position="-1429">
+          <caret line="494" column="0" lean-forward="false" selection-start-line="494" selection-start-column="0" selection-end-line="494" selection-end-column="0" />
+          <folding>
+            <element signature="e#19#306#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/models/models.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="366">
-          <caret line="182" column="45" lean-forward="false" selection-start-line="182" selection-start-column="45" selection-end-line="182" selection-end-column="45" />
+        <state relative-caret-position="201">
+          <caret line="132" column="43" lean-forward="false" selection-start-line="132" selection-start-column="43" selection-end-line="132" selection-end-column="43" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
+    <entry file="file://$PROJECT_DIR$/cloneapps.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1056">
-          <caret line="646" column="22" lean-forward="false" selection-start-line="646" selection-start-column="22" selection-end-line="646" selection-end-column="22" />
-          <folding>
-            <element signature="e#19#292#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="1053">
+          <caret line="106" column="0" lean-forward="false" selection-start-line="106" selection-start-column="0" selection-end-line="106" selection-end-column="0" />
+          <folding />
         </state>
       </provider>
     </entry>

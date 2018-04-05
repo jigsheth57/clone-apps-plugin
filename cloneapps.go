@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 6,
+			Build: 7,
 		},
 		Commands: []plugin.Command{
 			{
@@ -104,32 +104,7 @@ func (cmd *CloneAppsCmd) ExportAppsCmd(args []string) {
 }
 
 func (cmd *CloneAppsCmd) ImportAppsCmd(args []string) {
-
-	//var err error
-	//var importMeta models.Report
-
 	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper))
-	//if flagVals.OrgName != "" {
-	//	org, err := cmd.getOrg(flagVals.OrgName)
-	//	if nil != err {
-	//		fmt.Println(err)
-	//		os.Exit(1)
-	//	}
-	//	orgs = append(orgs, org)
-	//} else {
-	//	orgs, err = cmd.getOrgs()
-	//	if nil != err {
-	//		fmt.Println(err)
-	//		os.Exit(1)
-	//	}
-	//}
-	//
-	//importMeta.Orgs = orgs
-	//if flagVals.Download == "download" {
-	//	fmt.Println(exportMeta.MetaAndBits(cmd.apiHelper))
-	//} else {
-	//	fmt.Println(importMeta.MetaOnly())
-	//}
 }
 
 func (cmd *CloneAppsCmd) getOrgs() ([]models.Org, error) {

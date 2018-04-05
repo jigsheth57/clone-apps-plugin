@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"net/http"
 	"io/ioutil"
+	"crypto/tls"
 	"encoding/json"
 	"mime/multipart"
 
@@ -417,6 +418,7 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	if nil != err {
 		return
 	}
+	//fmt.Println("URL: "+apiendpoint+blobURL)
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", apiendpoint+blobURL, nil)
 	accessToken, err := api.cli.AccessToken()
@@ -425,6 +427,7 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	}
 	req.Header.Set("Authorization",accessToken)
 	res, _ := client.Do(req)
+	//fmt.Println("HTTP_STATUS: "+res.Status)
 	body, err := ioutil.ReadAll(res.Body)
 
 	// write whole the body
@@ -487,21 +490,25 @@ type spaceInput struct {
 	Guid	string `json:"organization_guid"`
 }
 func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error) {
-	var space plugin_models.GetSpace_Model
 	var ispace ImportedSpace
 	fmt.Println("Looking for space: "+name)
-	space, err := api.cli.GetSpace(name)
+	query := fmt.Sprintf("name:%s", name)
+	path := fmt.Sprintf("/v2/organizations/"+orgguid+"/spaces?q=%s", url.QueryEscape(query))
+	spaceJSON, err := cfcurl.Curl(api.cli, path)
 	if nil != err && create {
 		body := spaceInput{
 			Name:name,
 			Guid:orgguid,
 		}
 		bodyJSON, _ := json.Marshal(body)
-		fmt.Println("Creating space: "+name+" with payload: "+string(bodyJSON))
+		fmt.Println("Creating space ("+name+") with payload: "+string(bodyJSON))
 		result, err := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
 		if nil != err {
 			fmt.Println("Error creating space: "+name)
 			fmt.Println(err)
+			ispace = ImportedSpace{
+				Name: name,
+			}
 		}
 		if nil != result {
 			metadata := result["metadata"].(map[string]interface{})
@@ -509,13 +516,18 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 				Name: name,
 				Guid: metadata["guid"].(string),
 			}
-
 		}
 	} else {
-		fmt.Println("Found existing space: "+name)
-		ispace = ImportedSpace{
-			Name:name,
-			Guid:space.Guid,
+		results := int(spaceJSON["total_results"].(float64))
+		if results != 0 {
+			spaceResource := spaceJSON["resources"].([]interface{})[0]
+			theSpace := spaceResource.(map[string]interface{})
+			metadata := theSpace["metadata"].(map[string]interface{})
+			fmt.Println("Found existing space: "+name)
+			ispace = ImportedSpace{
+				Name:name,
+				Guid:metadata["guid"].(string),
+			}
 		}
 	}
 	return ispace, nil
@@ -703,6 +715,8 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 		iapp = ImportedApp{
 			Name:mapp.Name,
 			Guid:app.Guid,
+			Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
+			Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
 		}
 	}
 	return iapp, nil
@@ -771,16 +785,20 @@ func (api *APIHelper) bindRoute(routeguid string, appguid string ) (error) {
 func httpRequest(api *APIHelper, method string, url string, body string) (map[string]interface{}, error) {
 	apiendpoint, err := api.cli.ApiEndpoint()
 	check(err)
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	req, _ := http.NewRequest(method, apiendpoint+url, strings.NewReader(body))
 	accessToken, err := api.cli.AccessToken()
 	check(err)
 	req.Header.Set("Authorization",accessToken)
 	req.Header.Set("Content-Type", "application/json")
-	res, _ := client.Do(req)
-	stscode := res.StatusCode
-	response, err := ioutil.ReadAll(res.Body)
+	res, err := client.Do(req)
 	check(err)
+	stscode := res.StatusCode
+	//fmt.Println(stscode)
+	response, err := ioutil.ReadAll(res.Body)
 	if (stscode >= 400) {
 		return nil, errors.New(string(response))
 	}
@@ -792,73 +810,82 @@ func httpRequest(api *APIHelper, method string, url string, body string) (map[st
 }
 
 func putDroplet(api *APIHelper, url string, filename string) (string, error) {
-	apiendpoint, err := api.cli.ApiEndpoint()
-	check(err)
-	client := &http.Client{}
-	accessToken, err := api.cli.AccessToken()
-	check(err)
+	if _, err := os.Stat(filename); err == nil {
+		apiendpoint, err := api.cli.ApiEndpoint()
+		check(err)
+		client := &http.Client{}
+		accessToken, err := api.cli.AccessToken()
+		check(err)
 
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
+		bodyBuf := &bytes.Buffer{}
+		bodyWriter := multipart.NewWriter(bodyBuf)
 
-	fileWriter, err := bodyWriter.CreateFormFile("droplet", filename)
-	check(err)
-	// open file handle
-	fh, err := os.Open(filename)
-	check(err)
-	defer fh.Close()
+		fileWriter, err := bodyWriter.CreateFormFile("droplet", filename)
+		check(err)
+		// open file handle
+		fh, err := os.Open(filename)
+		check(err)
+		defer fh.Close()
 
-	//iocopy
-	_, err = io.Copy(fileWriter, fh)
-	check(err)
-	contentType := bodyWriter.FormDataContentType()
-	bodyWriter.Close()
+		//iocopy
+		_, err = io.Copy(fileWriter, fh)
+		check(err)
+		contentType := bodyWriter.FormDataContentType()
+		bodyWriter.Close()
 
-	req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
-	req.Header.Set("Authorization",accessToken)
-	req.Header.Set("Content-Type", contentType)
-	resp, err := client.Do(req)
-	check(err)
-	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
-	check(err)
-	return "Uploaded droplet "+filename+" ("+resp.Status+")", nil
+		req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
+		req.Header.Set("Authorization",accessToken)
+		req.Header.Set("Content-Type", contentType)
+		resp, err := client.Do(req)
+		check(err)
+		defer resp.Body.Close()
+		_, err = ioutil.ReadAll(resp.Body)
+		check(err)
+		return "Uploaded droplet "+filename+" ("+resp.Status+")", nil
+	} else {
+		return "Expected droplet "+filename+" doesn't exist in working directory!", nil
+	}
 }
 
 func putSrc(api *APIHelper, url string, filename string) (string, error) {
-	apiendpoint, err := api.cli.ApiEndpoint()
-	check(err)
-	client := &http.Client{}
-	accessToken, err := api.cli.AccessToken()
-	check(err)
+	if _, err := os.Stat(filename); err == nil {
+		apiendpoint, err := api.cli.ApiEndpoint()
+		check(err)
+		client := &http.Client{}
+		accessToken, err := api.cli.AccessToken()
+		check(err)
 
-	bodyBuf := &bytes.Buffer{}
-	bodyWriter := multipart.NewWriter(bodyBuf)
+		bodyBuf := &bytes.Buffer{}
+		bodyWriter := multipart.NewWriter(bodyBuf)
 
-	fileWriter, err := bodyWriter.CreateFormFile("application", filename)
-	check(err)
-	// open file handle
-	fh, err := os.Open(filename)
-	check(err)
-	defer fh.Close()
+		fileWriter, err := bodyWriter.CreateFormFile("application", filename)
+		check(err)
+		// open file handle
+		fh, err := os.Open(filename)
+		check(err)
+		defer fh.Close()
 
-	//iocopy
-	_, err = io.Copy(fileWriter, fh)
-	check(err)
-	contentType := bodyWriter.FormDataContentType()
+		//iocopy
+		_, err = io.Copy(fileWriter, fh)
+		check(err)
+		contentType := bodyWriter.FormDataContentType()
 
-	bodyWriter.WriteField("resources","[]")
-	bodyWriter.Close()
+		bodyWriter.WriteField("resources","[]")
+		bodyWriter.Close()
 
-	req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
-	req.Header.Set("Authorization",accessToken)
-	req.Header.Set("Content-Type", contentType)
-	resp, err := client.Do(req)
-	check(err)
-	defer resp.Body.Close()
-	_, err = ioutil.ReadAll(resp.Body)
-	check(err)
-	return "Uploaded src "+filename+" ("+resp.Status+")", nil
+		req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
+		req.Header.Set("Authorization",accessToken)
+		req.Header.Set("Content-Type", contentType)
+		resp, err := client.Do(req)
+		check(err)
+		defer resp.Body.Close()
+		_, err = ioutil.ReadAll(resp.Body)
+		check(err)
+		return "Uploaded src "+filename+" ("+resp.Status+")", nil
+	} else {
+		return "Expected src "+filename+" doesn't exist in working directory!", nil
+	}
+
 }
 
 func check(e error) {
