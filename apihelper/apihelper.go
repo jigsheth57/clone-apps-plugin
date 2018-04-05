@@ -366,7 +366,7 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 			theService := s.(map[string]interface{})
 			name := theService["name"].(string)
 			if _, servicePlanExist := theService["service_plan"]; servicePlanExist {
-				if boundedApps := theService["bound_app_count"].(float64); boundedApps > 0 {
+				//if boundedApps := theService["bound_app_count"].(float64); boundedApps > 0 {
 					servicePlan := theService["service_plan"].(map[string]interface{})
 					if _, serviceExist := servicePlan["service"]; serviceExist {
 						service := servicePlan["service"].(map[string]interface{})
@@ -379,7 +379,7 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 								Type: "managed",
 							})
 					}
-				}
+				//}
 			} else {
 				guid := theService["guid"].(string)
 				instanceURL := "/v2/service_instances/"+guid
@@ -524,6 +524,15 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 			return iservice, ErrManagedServicePlanNotFound
 		}
 		check(err)
+		siguid, err := api.GetServiceInstanceGuid(service.InstanceName,service.Type)
+		if len(siguid) > 1 {
+			create = false
+			iservice = ImportedService{
+				Name: service.InstanceName,
+				Guid: siguid,
+			}
+			fmt.Println("Service instance "+service.InstanceName+" found.")
+		}
 		if create {
 			body := serviceInput{
 				Name:service.InstanceName,
@@ -541,6 +550,15 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 		}
 	}
 	if service.Type == "user_provided" {
+		siguid, _ := api.GetServiceInstanceGuid(service.InstanceName,service.Type)
+		if len(siguid) > 1 {
+			create = false
+			iservice = ImportedService{
+				Name: service.InstanceName,
+				Guid: siguid,
+			}
+			fmt.Println("Service instance "+service.InstanceName+" found.")
+		}
 		if create {
 			body := cupsInput{
 				Name:service.InstanceName,
@@ -573,7 +591,10 @@ func (api *APIHelper) bindService(siguid string, appguid string ) (error) {
 	}
 	bodyJSON, _ := json.Marshal(body)
 	_, err := httpRequest(api,"POST","/v2/service_bindings",string(bodyJSON))
-	check(err)
+	if nil != err {
+		fmt.Println("Problem binding service instance ("+siguid+") to app instance ("+appguid+"): ")
+		fmt.Println(err)
+	}
 	return nil
 }
 
@@ -619,8 +640,8 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 		iapp = ImportedApp{
 			Name:mapp.Name,
 			Guid:metadata["guid"].(string),
-			Droplet: mapp.Name+"_"+mapp.Guid+".droplet",
-			Src: mapp.Name+"_"+mapp.Guid+".src",
+			Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
+			Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
 		}
 		for _, url := range mapp.URLs {
 			s := strings.SplitN(url.(string),".",2)

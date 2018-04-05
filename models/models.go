@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/jigsheth57/clone-apps-plugin/apihelper"
+	"net/url"
 )
 
 type Org struct {
@@ -99,8 +100,8 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
 				//if(download) {
-				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/droplet/download", app.Name+"_"+app.Guid+".droplet", chBits)
-				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/download", app.Name+"_"+app.Guid+".src", chBits)
+				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", chBits)
+				go apiHelper.GetBlob("/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", chBits)
 				//}
 			}
 		}
@@ -223,7 +224,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 }
 
 func writeToJson(orgs Orgs) {
-	b, _ := json.Marshal(orgs)
+	b, _ := json.MarshalIndent(orgs,"","\t")
 	err := ioutil.WriteFile("apps.json", b, 0644)
 	check(err)
 }
