@@ -419,17 +419,21 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 		return
 	}
 	//fmt.Println("URL: "+apiendpoint+blobURL)
-	client := &http.Client{}
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Transport: tr}
 	req, _ := http.NewRequest("GET", apiendpoint+blobURL, nil)
 	accessToken, err := api.cli.AccessToken()
 	if nil != err {
 		return
 	}
 	req.Header.Set("Authorization",accessToken)
-	res, _ := client.Do(req)
+	res, err := client.Do(req)
+	//fmt.Println(err)
 	//fmt.Println("HTTP_STATUS: "+res.Status)
 	body, err := ioutil.ReadAll(res.Body)
-
+	//fmt.Println(err)
 	// write whole the body
 	err = ioutil.WriteFile(filename, body, 0644)
 	check(err)
@@ -836,7 +840,10 @@ func putDroplet(api *APIHelper, url string, filename string) (string, error) {
 	if _, err := os.Stat(filename); err == nil {
 		apiendpoint, err := api.cli.ApiEndpoint()
 		check(err)
-		client := &http.Client{}
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 
@@ -874,7 +881,10 @@ func putSrc(api *APIHelper, url string, filename string) (string, error) {
 	if _, err := os.Stat(filename); err == nil {
 		apiendpoint, err := api.cli.ApiEndpoint()
 		check(err)
-		client := &http.Client{}
+		tr := &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		}
+		client := &http.Client{Transport: tr}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 

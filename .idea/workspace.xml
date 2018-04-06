@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="24a23287-1501-4246-bc7e-de260ad570a4" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apihelper/apihelper.go" beforeDir="false" afterPath="$PROJECT_DIR$/apihelper/apihelper.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -17,8 +16,8 @@
       <file leaf-file-name="apihelper.go" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="349">
-              <caret line="731" selection-start-line="731" selection-end-line="731" />
+            <state relative-caret-position="219">
+              <caret line="887" selection-start-line="887" selection-end-line="887" />
             </state>
           </provider>
         </entry>
@@ -26,8 +25,8 @@
       <file leaf-file-name="models.go" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/models/models.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="242">
-              <caret line="182" column="44" selection-start-line="182" selection-start-column="44" selection-end-line="182" selection-end-column="44" />
+            <state relative-caret-position="213">
+              <caret line="102" column="33" selection-start-line="102" selection-start-column="33" selection-end-line="102" selection-end-column="33" />
             </state>
           </provider>
         </entry>
@@ -415,15 +414,15 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/models/models.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="242">
-          <caret line="182" column="44" selection-start-line="182" selection-start-column="44" selection-end-line="182" selection-end-column="44" />
+        <state relative-caret-position="213">
+          <caret line="102" column="33" selection-start-line="102" selection-start-column="33" selection-end-line="102" selection-end-column="33" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="349">
-          <caret line="731" selection-start-line="731" selection-end-line="731" />
+        <state relative-caret-position="219">
+          <caret line="887" selection-start-line="887" selection-end-line="887" />
         </state>
       </provider>
     </entry>
