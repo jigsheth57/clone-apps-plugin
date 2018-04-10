@@ -116,7 +116,7 @@ type CFAPIHelper interface {
 	GetOrgs() (Orgs, error)
 	GetOrg(string) (Organization, error)
 	GetDomainGuid(name string) (string, error)
-	GetServiceInstanceGuid(name string, stype string) (string, error)
+	GetServiceInstanceGuid(name string, stype string, spaceguid string) (string, error)
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(string) (Apps, Services, error)
@@ -220,14 +220,15 @@ func (api *APIHelper) GetDomainGuid(name string) (string, error) {
 }
 
 //GetServiceInstanceGuid returns a service instance guid
-func (api *APIHelper) GetServiceInstanceGuid(name string, stype string) (string, error) {
-	query := fmt.Sprintf("name:%s", name)
+func (api *APIHelper) GetServiceInstanceGuid(name string, stype string, spaceguid string) (string, error) {
+	query1 := fmt.Sprintf("name:%s", name)
+	query2 := fmt.Sprintf("space_guid:%s", spaceguid)
 	var path string
 	if (stype == "managed") {
-		path = fmt.Sprintf("/v2/service_instances?q=%s", url.QueryEscape(query))
+		path = fmt.Sprintf("/v2/service_instances?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
 	}
 	if (stype == "user_provided") {
-		path = fmt.Sprintf("/v2/user_provided_service_instances?q=%s", url.QueryEscape(query))
+		path = fmt.Sprintf("/v2/user_provided_service_instances?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
 	}
 
 	siJSON, err := cfcurl.Curl(api.cli, path)
@@ -564,7 +565,7 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 			return iservice, ErrManagedServicePlanNotFound
 		}
 		check(err)
-		siguid, err := api.GetServiceInstanceGuid(service.InstanceName,service.Type)
+		siguid, err := api.GetServiceInstanceGuid(service.InstanceName,service.Type,spaceguid)
 		if len(siguid) > 1 {
 			create = false
 			iservice = ImportedService{
@@ -597,7 +598,7 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 		}
 	}
 	if service.Type == "user_provided" {
-		siguid, _ := api.GetServiceInstanceGuid(service.InstanceName,service.Type)
+		siguid, _ := api.GetServiceInstanceGuid(service.InstanceName,service.Type,spaceguid)
 		if len(siguid) > 1 {
 			create = false
 			iservice = ImportedService{
