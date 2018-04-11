@@ -1,22 +1,22 @@
 package apihelper
 
 import (
-	"errors"
-	"fmt"
-	"strconv"
-	"strings"
-	"io"
 	"bytes"
-	"os"
-	"net/url"
-	"net/http"
-	"io/ioutil"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"io"
+	"io/ioutil"
 	"mime/multipart"
+	"net/http"
+	"net/url"
+	"os"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/cloudfoundry/cli/plugin"
-	"code.cloudfoundry.org/cli/plugin/models"
 	"github.com/jigsheth57/clone-apps-plugin/cfcurl"
 )
 
@@ -42,37 +42,37 @@ type Organization struct {
 
 //Space representation
 type Space struct {
-	Name    	string
-	SummaryURL	string
+	Name       string
+	SummaryURL string
 }
 
 //App representation
 type App struct {
-	Guid					string
-	Name					string
-	Memory					float64
-	Instances				float64
-	DiskQuota   			float64
-	State					string
-	Command					string
-	HealthCheckType			string
-	HealthCheckTimeout		float64
-	HealthCheckHttpEndpoint	string
-	Diego					bool
-	EnableSsh				bool
-	EnviornmentVar			map[string]interface{}
-	ServiceNames			[]interface{}
-	URLs					[]interface{}
+	Guid                    string
+	Name                    string
+	Memory                  float64
+	Instances               float64
+	DiskQuota               float64
+	State                   string
+	Command                 string
+	HealthCheckType         string
+	HealthCheckTimeout      float64
+	HealthCheckHttpEndpoint string
+	Diego                   bool
+	EnableSsh               bool
+	EnviornmentVar          map[string]interface{}
+	ServiceNames            []interface{}
+	URLs                    []interface{}
 }
 
 //Service representation
 type Service struct {
-	InstanceName	string
-	Label    		string
-	ServicePlan 	string
-	Type			string
-	Credentials		map[string]interface{}
-	SyslogDrain		string
+	InstanceName string
+	Label        string
+	ServicePlan  string
+	Type         string
+	Credentials  map[string]interface{}
+	SyslogDrain  string
 }
 
 type Orgs []Organization
@@ -81,35 +81,34 @@ type Apps []App
 type Services []Service
 
 type ImportedOrg struct {
-	Guid	string
-	Name	string
-	Spaces	ISpaces
+	Guid   string
+	Name   string
+	Spaces ISpaces
 }
 
 type ImportedSpace struct {
-	Guid		string
-	Name		string
-	Apps		IApps
-	Services	IServices
+	Guid     string
+	Name     string
+	Apps     IApps
+	Services IServices
 }
 
 type ImportedApp struct {
-	Guid	string
-	Name	string
-	Droplet	string
-	Src		string
+	Guid    string
+	Name    string
+	Droplet string
+	Src     string
 }
 
 type ImportedService struct {
-	Guid	string
-	Name	string
+	Guid string
+	Name string
 }
 
 type IServices []ImportedService
 type IApps []ImportedApp
 type ISpaces []ImportedSpace
 type IOrgs []ImportedOrg
-
 
 //CFAPIHelper to wrap cf curl results
 type CFAPIHelper interface {
@@ -122,10 +121,10 @@ type CFAPIHelper interface {
 	GetSpaceAppsAndServices(string) (Apps, Services, error)
 	GetBlob(blobURL string, filename string, c chan string)
 	PutBlob(blobURL string, filename string, c chan string)
-	CheckOrg(name string, create bool ) (ImportedOrg, error)
-	CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error)
-	CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error)
-	CheckServiceInstance( service Service, spaceguid string, create bool ) (ImportedService, error)
+	CheckOrg(name string, create bool) (ImportedOrg, error)
+	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
+	CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error)
+	CheckServiceInstance(service Service, spaceguid string, create bool) (ImportedService, error)
 }
 
 //APIHelper implementation
@@ -153,7 +152,7 @@ func (api *APIHelper) GetOrgs() (Orgs, error) {
 			theOrg := o.(map[string]interface{})
 			entity := theOrg["entity"].(map[string]interface{})
 			name := entity["name"].(string)
-			if (name == "system") {
+			if name == "system" {
 				continue
 			}
 			orgs = append(orgs,
@@ -224,10 +223,10 @@ func (api *APIHelper) GetServiceInstanceGuid(name string, stype string, spacegui
 	query1 := fmt.Sprintf("name:%s", name)
 	query2 := fmt.Sprintf("space_guid:%s", spaceguid)
 	var path string
-	if (stype == "managed") {
+	if stype == "managed" {
 		path = fmt.Sprintf("/v2/service_instances?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
 	}
-	if (stype == "user_provided") {
+	if stype == "user_provided" {
 		path = fmt.Sprintf("/v2/user_provided_service_instances?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
 	}
 
@@ -272,7 +271,7 @@ func (api *APIHelper) getServicePlanGuid(label string, plan string) (string, err
 		splan := sp.(map[string]interface{})
 		entity := splan["entity"].(map[string]interface{})
 		name := entity["name"].(string)
-		if (name != plan) {
+		if name != plan {
 			continue
 		}
 		metadata := splan["metadata"].(map[string]interface{})
@@ -305,8 +304,8 @@ func (api *APIHelper) GetOrgSpaces(spacesURL string) (Spaces, error) {
 			entity := theSpace["entity"].(map[string]interface{})
 			spaces = append(spaces,
 				Space{
-					Name:    entity["name"].(string),
-					SummaryURL: metadata["url"].(string)+"/summary",
+					Name:       entity["name"].(string),
+					SummaryURL: metadata["url"].(string) + "/summary",
 				})
 		}
 		if next, ok := spacesJSON["next_url"].(string); ok {
@@ -338,28 +337,28 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 				httpTimeout = 180
 			}
 			environmentVar, ok := theApp["environment_json"].(map[string]interface{})
-			if (ok) {
+			if ok {
 				if _, ok := environmentVar["redacted_message"]; ok {
 					environmentVar = make(map[string]interface{})
 				}
 			}
 			apps = append(apps,
 				App{
-					Guid: theApp["guid"].(string),
-					Name: theApp["name"].(string),
-					Memory:	theApp["memory"].(float64),
-					Instances:	theApp["instances"].(float64),
-					DiskQuota:	theApp["disk_quota"].(float64),
-					State:	"STOPPED",
-					Command:	theApp["detected_start_command"].(string),
-					HealthCheckType:	theApp["health_check_type"].(string),
-					HealthCheckTimeout:	httpTimeout,
-					HealthCheckHttpEndpoint:	httpEndpoint,
-					Diego: true,
-					EnableSsh:	theApp["enable_ssh"].(bool),
+					Guid:                    theApp["guid"].(string),
+					Name:                    theApp["name"].(string),
+					Memory:                  theApp["memory"].(float64),
+					Instances:               theApp["instances"].(float64),
+					DiskQuota:               theApp["disk_quota"].(float64),
+					State:                   "STOPPED",
+					Command:                 theApp["detected_start_command"].(string),
+					HealthCheckType:         theApp["health_check_type"].(string),
+					HealthCheckTimeout:      httpTimeout,
+					HealthCheckHttpEndpoint: httpEndpoint,
+					Diego:          true,
+					EnableSsh:      theApp["enable_ssh"].(bool),
 					EnviornmentVar: environmentVar,
-					ServiceNames: theApp["service_names"].([]interface{}),
-					URLs: theApp["urls"].([]interface{}),
+					ServiceNames:   theApp["service_names"].([]interface{}),
+					URLs:           theApp["urls"].([]interface{}),
 				})
 		}
 	}
@@ -369,22 +368,22 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 			name := theService["name"].(string)
 			if _, servicePlanExist := theService["service_plan"]; servicePlanExist {
 				//if boundedApps := theService["bound_app_count"].(float64); boundedApps > 0 {
-					servicePlan := theService["service_plan"].(map[string]interface{})
-					if _, serviceExist := servicePlan["service"]; serviceExist {
-						service := servicePlan["service"].(map[string]interface{})
-						label := service["label"].(string)
-						services = append(services,
-							Service{
-								InstanceName: name,
-								Label:       label,
-								ServicePlan: servicePlan["name"].(string),
-								Type: "managed",
-							})
-					}
+				servicePlan := theService["service_plan"].(map[string]interface{})
+				if _, serviceExist := servicePlan["service"]; serviceExist {
+					service := servicePlan["service"].(map[string]interface{})
+					label := service["label"].(string)
+					services = append(services,
+						Service{
+							InstanceName: name,
+							Label:        label,
+							ServicePlan:  servicePlan["name"].(string),
+							Type:         "managed",
+						})
+				}
 				//}
 			} else {
 				guid := theService["guid"].(string)
-				instanceURL := "/v2/service_instances/"+guid
+				instanceURL := "/v2/service_instances/" + guid
 				cupsJSON, err := cfcurl.Curl(api.cli, instanceURL)
 				if nil != err {
 					return nil, nil, err
@@ -392,7 +391,7 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 				if _, ok := cupsJSON["entity"]; ok {
 					entity := cupsJSON["entity"].(map[string]interface{})
 					cred, ok := entity["credentials"].(map[string]interface{})
-					if (ok) {
+					if ok {
 						if _, ok := cred["redacted_message"]; ok {
 							cred = make(map[string]interface{})
 						}
@@ -400,11 +399,11 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 					services = append(services,
 						Service{
 							InstanceName: name,
-							Label:       "",
-							ServicePlan: "",
-							Type: "user_provided",
-							Credentials: cred,
-							SyslogDrain: entity["syslog_drain_url"].(string),
+							Label:        "",
+							ServicePlan:  "",
+							Type:         "user_provided",
+							Credentials:  cred,
+							SyslogDrain:  entity["syslog_drain_url"].(string),
 						})
 				}
 			}
@@ -423,13 +422,16 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   time.Second * 10,
+	}
 	req, _ := http.NewRequest("GET", apiendpoint+blobURL, nil)
 	accessToken, err := api.cli.AccessToken()
 	if nil != err {
 		return
 	}
-	req.Header.Set("Authorization",accessToken)
+	req.Header.Set("Authorization", accessToken)
 	res, err := client.Do(req)
 	//fmt.Println(err)
 	//fmt.Println("HTTP_STATUS: "+res.Status)
@@ -445,32 +447,33 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 func (api *APIHelper) PutBlob(blobURL string, filename string, c chan string) {
 
 	var msg string
-	if(strings.Contains(blobURL,"droplet")) {
-		msg, _ = putDroplet(api,blobURL,filename)
+	if strings.Contains(blobURL, "droplet") {
+		msg, _ = putDroplet(api, blobURL, filename)
 	}
-	if(strings.Contains(blobURL,"bits")) {
-		msg, _ = putSrc(api,blobURL,filename)
+	if strings.Contains(blobURL, "bits") {
+		msg, _ = putSrc(api, blobURL, filename)
 	}
 	c <- msg
 }
 
 type orgInput struct {
-	Name	string `json:"name"`
+	Name string `json:"name"`
 }
-func (api *APIHelper) CheckOrg(name string, create bool ) (ImportedOrg, error) {
+
+func (api *APIHelper) CheckOrg(name string, create bool) (ImportedOrg, error) {
 	var org plugin_models.GetOrg_Model
 	var iorg ImportedOrg
-	fmt.Println("Looking for org: "+name)
+	fmt.Println("Looking for org: " + name)
 	org, err := api.cli.GetOrg(name)
 	if nil != err && create {
 		body := orgInput{
-			Name:name,
+			Name: name,
 		}
 		bodyJSON, _ := json.Marshal(body)
-		fmt.Println("Creating org: "+name+" with payload: "+string(bodyJSON))
-		result, err := httpRequest(api,"POST","/v2/organizations",string(bodyJSON))
+		fmt.Println("Creating org: " + name + " with payload: " + string(bodyJSON))
+		result, err := httpRequest(api, "POST", "/v2/organizations", string(bodyJSON))
 		if nil != err {
-			fmt.Println("Error creating org: "+name)
+			fmt.Println("Error creating org: " + name)
 			fmt.Println(err)
 		}
 		if nil != result {
@@ -481,23 +484,24 @@ func (api *APIHelper) CheckOrg(name string, create bool ) (ImportedOrg, error) {
 			}
 		}
 	} else {
-		fmt.Println("Found existing org: "+name)
+		fmt.Println("Found existing org: " + name)
 		iorg = ImportedOrg{
-			Name:name,
-			Guid:org.Guid,
+			Name: name,
+			Guid: org.Guid,
 		}
 	}
 	return iorg, nil
 }
 
 type spaceInput struct {
-	Name	string `json:"name"`
-	Guid	string `json:"organization_guid"`
+	Name string `json:"name"`
+	Guid string `json:"organization_guid"`
 }
-func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (ImportedSpace, error) {
+
+func (api *APIHelper) CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error) {
 	var ispace ImportedSpace
 	var total_results int
-	fmt.Println("Looking for space: "+name)
+	fmt.Println("Looking for space: " + name)
 	query := fmt.Sprintf("name:%s", name)
 	path := fmt.Sprintf("/v2/organizations/"+orgguid+"/spaces?q=%s", url.QueryEscape(query))
 	spaceJSON, err := cfcurl.Curl(api.cli, path)
@@ -505,14 +509,14 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 		total_results = int(spaceJSON["total_results"].(float64))
 		if total_results == 0 && create {
 			body := spaceInput{
-				Name:name,
-				Guid:orgguid,
+				Name: name,
+				Guid: orgguid,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			fmt.Println("Creating space ("+name+") with payload: "+string(bodyJSON))
-			result, err := httpRequest(api,"POST","/v2/spaces",string(bodyJSON))
+			fmt.Println("Creating space (" + name + ") with payload: " + string(bodyJSON))
+			result, err := httpRequest(api, "POST", "/v2/spaces", string(bodyJSON))
 			if nil != err {
-				fmt.Println("Error creating space: "+name)
+				fmt.Println("Error creating space: " + name)
 				fmt.Println(err)
 				ispace = ImportedSpace{
 					Name: name,
@@ -530,16 +534,16 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 				spaceResource := spaceJSON["resources"].([]interface{})[0]
 				theSpace := spaceResource.(map[string]interface{})
 				metadata := theSpace["metadata"].(map[string]interface{})
-				fmt.Println("Found existing space: "+name)
+				fmt.Println("Found existing space: " + name)
 				ispace = ImportedSpace{
-					Name:name,
-					Guid:metadata["guid"].(string),
+					Name: name,
+					Guid: metadata["guid"].(string),
 				}
 			}
 		}
 	} else {
 		ispace = ImportedSpace{
-			Name:name,
+			Name: name,
 		}
 	}
 
@@ -547,44 +551,45 @@ func (api *APIHelper) CheckSpace(name string, orgguid string, create bool ) (Imp
 }
 
 type serviceInput struct {
-	Name		string `json:"name"`
-	SpaceGuid	string `json:"space_guid"`
-	ServicePlanGuid	string `json:"service_plan_guid"`
+	Name            string `json:"name"`
+	SpaceGuid       string `json:"space_guid"`
+	ServicePlanGuid string `json:"service_plan_guid"`
 }
 type cupsInput struct {
-	Name		string `json:"name"`
-	SpaceGuid	string `json:"space_guid"`
-	Credentials		map[string]interface{} `json:"credentials"`
-	SyslogDrain		string `json:"syslog_drain_url"`
+	Name        string                 `json:"name"`
+	SpaceGuid   string                 `json:"space_guid"`
+	Credentials map[string]interface{} `json:"credentials"`
+	SyslogDrain string                 `json:"syslog_drain_url"`
 }
-func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, create bool ) (ImportedService, error) {
+
+func (api *APIHelper) CheckServiceInstance(service Service, spaceguid string, create bool) (ImportedService, error) {
 	var iservice ImportedService
 	if service.Type == "managed" {
-		spguid, err := api.getServicePlanGuid(service.Label,service.ServicePlan)
+		spguid, err := api.getServicePlanGuid(service.Label, service.ServicePlan)
 		if len(spguid) < 1 {
 			return iservice, ErrManagedServicePlanNotFound
 		}
 		check(err)
-		siguid, err := api.GetServiceInstanceGuid(service.InstanceName,service.Type,spaceguid)
+		siguid, err := api.GetServiceInstanceGuid(service.InstanceName, service.Type, spaceguid)
 		if len(siguid) > 1 {
 			create = false
 			iservice = ImportedService{
 				Name: service.InstanceName,
 				Guid: siguid,
 			}
-			fmt.Println("Service instance "+service.InstanceName+" found.")
+			fmt.Println("Service instance " + service.InstanceName + " found.")
 		}
 		if create {
 			body := serviceInput{
-				Name:service.InstanceName,
-				SpaceGuid:spaceguid,
-				ServicePlanGuid:spguid,
+				Name:            service.InstanceName,
+				SpaceGuid:       spaceguid,
+				ServicePlanGuid: spguid,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			fmt.Println("Creating service instance "+service.InstanceName+" with payload: "+string(bodyJSON))
-			result, err := httpRequest(api,"POST","/v2/service_instances?accepts_incomplete=true",string(bodyJSON))
+			fmt.Println("Creating service instance " + service.InstanceName + " with payload: " + string(bodyJSON))
+			result, err := httpRequest(api, "POST", "/v2/service_instances?accepts_incomplete=true", string(bodyJSON))
 			if nil != err {
-				fmt.Println("Error creating service instance: "+service.InstanceName)
+				fmt.Println("Error creating service instance: " + service.InstanceName)
 				fmt.Println(err)
 			}
 			if nil != result {
@@ -593,32 +598,32 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 					Name: service.InstanceName,
 					Guid: metadata["guid"].(string),
 				}
-				fmt.Println("Service instance "+service.InstanceName+" created.")
+				fmt.Println("Service instance " + service.InstanceName + " created.")
 			}
 		}
 	}
 	if service.Type == "user_provided" {
-		siguid, _ := api.GetServiceInstanceGuid(service.InstanceName,service.Type,spaceguid)
+		siguid, _ := api.GetServiceInstanceGuid(service.InstanceName, service.Type, spaceguid)
 		if len(siguid) > 1 {
 			create = false
 			iservice = ImportedService{
 				Name: service.InstanceName,
 				Guid: siguid,
 			}
-			fmt.Println("Service instance "+service.InstanceName+" found.")
+			fmt.Println("Service instance " + service.InstanceName + " found.")
 		}
 		if create {
 			body := cupsInput{
-				Name:service.InstanceName,
-				SpaceGuid:spaceguid,
-				Credentials:service.Credentials,
-				SyslogDrain:service.SyslogDrain,
+				Name:        service.InstanceName,
+				SpaceGuid:   spaceguid,
+				Credentials: service.Credentials,
+				SyslogDrain: service.SyslogDrain,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			fmt.Println("Creating service instance "+service.InstanceName+" with payload: "+string(bodyJSON))
-			result, err := httpRequest(api,"POST","/v2/user_provided_service_instances",string(bodyJSON))
+			fmt.Println("Creating service instance " + service.InstanceName + " with payload: " + string(bodyJSON))
+			result, err := httpRequest(api, "POST", "/v2/user_provided_service_instances", string(bodyJSON))
 			if nil != err {
-				fmt.Println("Error creating service instance: "+service.InstanceName)
+				fmt.Println("Error creating service instance: " + service.InstanceName)
 				fmt.Println(err)
 			}
 			if nil != result {
@@ -627,7 +632,7 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 					Name: service.InstanceName,
 					Guid: metadata["guid"].(string),
 				}
-				fmt.Println("Service instance "+service.InstanceName+" created.")
+				fmt.Println("Service instance " + service.InstanceName + " created.")
 
 			}
 		}
@@ -637,42 +642,44 @@ func (api *APIHelper) CheckServiceInstance( service Service, spaceguid string, c
 }
 
 type serviceBindingInput struct {
-	ServiceInstanceGuid	string `json:"service_instance_guid"`
-	AppGuid				string `json:"app_guid"`
+	ServiceInstanceGuid string `json:"service_instance_guid"`
+	AppGuid             string `json:"app_guid"`
 }
-func (api *APIHelper) bindService(siguid string, appguid string ) (error) {
+
+func (api *APIHelper) bindService(siguid string, appguid string) error {
 	body := serviceBindingInput{
-		ServiceInstanceGuid:siguid,
-		AppGuid:appguid,
+		ServiceInstanceGuid: siguid,
+		AppGuid:             appguid,
 	}
 	bodyJSON, _ := json.Marshal(body)
-	_, err := httpRequest(api,"POST","/v2/service_bindings",string(bodyJSON))
+	_, err := httpRequest(api, "POST", "/v2/service_bindings", string(bodyJSON))
 	if nil != err {
-		fmt.Println("Problem binding service instance ("+siguid+") to app instance ("+appguid+"): ")
+		fmt.Println("Problem binding service instance (" + siguid + ") to app instance (" + appguid + "): ")
 		fmt.Println(err)
 	}
 	return nil
 }
 
 type appInput struct {
-	SpaceGuid				string `json:"space_guid"`
-	Name					string `json:"name"`
-	Memory					float64 `json:"memory"`
-	Instances				float64 `json:"instances"`
-	DiskQuota   			float64 `json:"disk_quota"`
-	State					string `json:"state"`
-	Command					string `json:"command"`
-	HealthCheckType			string `json:"health_check_type"`
-	HealthCheckTimeout		float64 `json:"health_check_timeout"`
-	HealthCheckHttpEndpoint	string `json:"health_check_http_endpoint"`
-	Diego					bool `json:"diego"`
-	EnableSsh				bool `json:"enable_ssh"`
-	EnviornmentVar			map[string]interface{} `json:"environment_json"`
+	SpaceGuid               string                 `json:"space_guid"`
+	Name                    string                 `json:"name"`
+	Memory                  float64                `json:"memory"`
+	Instances               float64                `json:"instances"`
+	DiskQuota               float64                `json:"disk_quota"`
+	State                   string                 `json:"state"`
+	Command                 string                 `json:"command"`
+	HealthCheckType         string                 `json:"health_check_type"`
+	HealthCheckTimeout      float64                `json:"health_check_timeout"`
+	HealthCheckHttpEndpoint string                 `json:"health_check_http_endpoint"`
+	Diego                   bool                   `json:"diego"`
+	EnableSsh               bool                   `json:"enable_ssh"`
+	EnviornmentVar          map[string]interface{} `json:"environment_json"`
 }
-func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, create bool ) (ImportedApp, error) {
+
+func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error) {
 	var iapp ImportedApp
 	var total_results int
-	fmt.Println("Looking for app: "+mapp.Name)
+	fmt.Println("Looking for app: " + mapp.Name)
 	query1 := fmt.Sprintf("name:%s", mapp.Name)
 	query2 := fmt.Sprintf("space_guid:%s", spaceguid)
 	path := fmt.Sprintf("/v2/apps?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
@@ -681,59 +688,59 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 		total_results = int(appJSON["total_results"].(float64))
 		if total_results == 0 && create {
 			body := appInput{
-				SpaceGuid:spaceguid,
-				Name:mapp.Name,
-				Memory:mapp.Memory,
-				Instances:mapp.Instances,
-				DiskQuota:mapp.DiskQuota,
-				State:mapp.State,
-				Command:mapp.Command,
-				HealthCheckType:mapp.HealthCheckType,
-				HealthCheckTimeout:180,
-				HealthCheckHttpEndpoint:mapp.HealthCheckHttpEndpoint,
-				Diego:mapp.Diego,
-				EnableSsh:mapp.EnableSsh,
-				EnviornmentVar:mapp.EnviornmentVar,
+				SpaceGuid:               spaceguid,
+				Name:                    mapp.Name,
+				Memory:                  mapp.Memory,
+				Instances:               mapp.Instances,
+				DiskQuota:               mapp.DiskQuota,
+				State:                   mapp.State,
+				Command:                 mapp.Command,
+				HealthCheckType:         mapp.HealthCheckType,
+				HealthCheckTimeout:      180,
+				HealthCheckHttpEndpoint: mapp.HealthCheckHttpEndpoint,
+				Diego:          mapp.Diego,
+				EnableSsh:      mapp.EnableSsh,
+				EnviornmentVar: mapp.EnviornmentVar,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			fmt.Println("Creating app ("+mapp.Name+") with payload: "+string(bodyJSON))
-			result, err := httpRequest(api,"POST","/v2/apps",string(bodyJSON))
+			fmt.Println("Creating app (" + mapp.Name + ") with payload: " + string(bodyJSON))
+			result, err := httpRequest(api, "POST", "/v2/apps", string(bodyJSON))
 			if nil != err {
-				fmt.Println("Error creating app: "+mapp.Name)
+				fmt.Println("Error creating app: " + mapp.Name)
 				fmt.Println(err)
 			}
 			if nil != result {
 				metadata := result["metadata"].(map[string]interface{})
 				iapp = ImportedApp{
-					Name:mapp.Name,
-					Guid:metadata["guid"].(string),
-					Droplet: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".droplet",
-					Src: url.PathEscape(mapp.Name)+"_"+mapp.Guid+".src",
+					Name:    mapp.Name,
+					Guid:    metadata["guid"].(string),
+					Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
+					Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
 				}
-				fmt.Println("App "+mapp.Name+" created.")
+				fmt.Println("App " + mapp.Name + " created.")
 			}
 			for _, url := range mapp.URLs {
-				s := strings.SplitN(url.(string),".",2)
+				s := strings.SplitN(url.(string), ".", 2)
 				domainguid, err := api.GetDomainGuid(s[1])
 				check(err)
-				routeguid, err := api.createRoute(domainguid,spaceguid,s[0])
+				routeguid, err := api.createRoute(domainguid, spaceguid, s[0])
 				check(err)
-				fmt.Println("Route ("+url.(string)+") created.")
-				api.bindRoute(routeguid,iapp.Guid)
-				fmt.Println("Route ("+url.(string)+") bounded to app "+mapp.Name+".")
+				fmt.Println("Route (" + url.(string) + ") created.")
+				api.bindRoute(routeguid, iapp.Guid)
+				fmt.Println("Route (" + url.(string) + ") bounded to app " + mapp.Name + ".")
 			}
 			for _, siname := range mapp.ServiceNames {
 				siguid, err := getServiceInstanceGuid(rservices, siname.(string))
 				check(err)
-				api.bindService(siguid,iapp.Guid)
-				fmt.Println("Service instance ("+siname.(string)+") bounded to app "+mapp.Name+".")
+				api.bindService(siguid, iapp.Guid)
+				fmt.Println("Service instance (" + siname.(string) + ") bounded to app " + mapp.Name + ".")
 			}
 		} else {
 			if total_results != 0 {
 				appResource := appJSON["resources"].([]interface{})[0]
 				theApp := appResource.(map[string]interface{})
 				metadata := theApp["metadata"].(map[string]interface{})
-				fmt.Println("Found existing app: "+mapp.Name)
+				fmt.Println("Found existing app: " + mapp.Name)
 				iapp = ImportedApp{
 					Name:    mapp.Name,
 					Guid:    metadata["guid"].(string),
@@ -752,9 +759,9 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 	return iapp, nil
 }
 
-func getServiceInstanceGuid (rservices IServices, name string) (string, error) {
+func getServiceInstanceGuid(rservices IServices, name string) (string, error) {
 	for _, service := range rservices {
-		if (service.Name == name) {
+		if service.Name == name {
 			return service.Guid, nil
 		}
 	}
@@ -762,16 +769,17 @@ func getServiceInstanceGuid (rservices IServices, name string) (string, error) {
 }
 
 type routeInput struct {
-	DomainGuid	string `json:"domain_guid"`
-	SpaceGuid	string `json:"space_guid"`
-	Hostname	string `json:"host"`
+	DomainGuid string `json:"domain_guid"`
+	SpaceGuid  string `json:"space_guid"`
+	Hostname   string `json:"host"`
 }
-func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname string ) (string, error) {
+
+func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname string) (string, error) {
 	var rguid string
 	query1 := fmt.Sprintf("host:%s", hostname)
 	query2 := fmt.Sprintf("domain_guid:%s", domainguid)
 	path := fmt.Sprintf("/v2/routes?q=%s;q=%s", url.QueryEscape(query1), url.QueryEscape(query2))
-	fmt.Println("Looking for route: "+hostname+" under domain("+domainguid+")")
+	fmt.Println("Looking for route: " + hostname + " under domain(" + domainguid + ")")
 	routeJSON, err := cfcurl.Curl(api.cli, path)
 	if nil == err {
 		total_results := int(routeJSON["total_results"].(float64))
@@ -780,18 +788,18 @@ func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname 
 			theRoute := routeResource.(map[string]interface{})
 			metadata := theRoute["metadata"].(map[string]interface{})
 			rguid = metadata["guid"].(string)
-			fmt.Println("Found existing route with hostname: "+hostname)
+			fmt.Println("Found existing route with hostname: " + hostname)
 		} else {
 			body := routeInput{
-				DomainGuid:domainguid,
-				SpaceGuid:spaceguid,
-				Hostname:hostname,
+				DomainGuid: domainguid,
+				SpaceGuid:  spaceguid,
+				Hostname:   hostname,
 			}
 			bodyJSON, _ := json.Marshal(body)
-			fmt.Println("Creating route with payload: "+string(bodyJSON))
-			result, err := httpRequest(api,"POST","/v2/routes",string(bodyJSON))
+			fmt.Println("Creating route with payload: " + string(bodyJSON))
+			result, err := httpRequest(api, "POST", "/v2/routes", string(bodyJSON))
 			if nil != err {
-				fmt.Println("Error creating route: "+hostname)
+				fmt.Println("Error creating route: " + hostname)
 				fmt.Println(err)
 			}
 			if nil != result {
@@ -805,8 +813,8 @@ func (api *APIHelper) createRoute(domainguid string, spaceguid string, hostname 
 	return rguid, nil
 }
 
-func (api *APIHelper) bindRoute(routeguid string, appguid string ) (error) {
-	httpRequest(api,"PUT","/v2/routes/"+routeguid+"/apps/"+appguid,"")
+func (api *APIHelper) bindRoute(routeguid string, appguid string) error {
+	httpRequest(api, "PUT", "/v2/routes/"+routeguid+"/apps/"+appguid, "")
 	return nil
 }
 
@@ -816,18 +824,21 @@ func httpRequest(api *APIHelper, method string, url string, body string) (map[st
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
-	client := &http.Client{Transport: tr}
+	client := &http.Client{
+		Transport: tr,
+		Timeout:   time.Second * 10,
+	}
 	req, _ := http.NewRequest(method, apiendpoint+url, strings.NewReader(body))
 	accessToken, err := api.cli.AccessToken()
 	check(err)
-	req.Header.Set("Authorization",accessToken)
+	req.Header.Set("Authorization", accessToken)
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client.Do(req)
 	check(err)
 	stscode := res.StatusCode
 	//fmt.Println(stscode)
 	response, err := ioutil.ReadAll(res.Body)
-	if (stscode >= 400) {
+	if stscode >= 400 {
 		return nil, errors.New(string(response))
 	}
 	var f interface{}
@@ -844,7 +855,10 @@ func putDroplet(api *APIHelper, url string, filename string) (string, error) {
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		client := &http.Client{Transport: tr}
+		client := &http.Client{
+			Transport: tr
+			Timeout:   time.Second * 10,
+		}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 
@@ -865,16 +879,16 @@ func putDroplet(api *APIHelper, url string, filename string) (string, error) {
 		bodyWriter.Close()
 
 		req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
-		req.Header.Set("Authorization",accessToken)
+		req.Header.Set("Authorization", accessToken)
 		req.Header.Set("Content-Type", contentType)
 		resp, err := client.Do(req)
 		check(err)
 		defer resp.Body.Close()
 		_, err = ioutil.ReadAll(resp.Body)
 		check(err)
-		return "Uploaded droplet "+filename+" ("+resp.Status+")", nil
+		return "Uploaded droplet " + filename + " (" + resp.Status + ")", nil
 	} else {
-		return "Expected droplet "+filename+" doesn't exist in working directory!", nil
+		return "Expected droplet " + filename + " doesn't exist in working directory!", nil
 	}
 }
 
@@ -885,7 +899,10 @@ func putSrc(api *APIHelper, url string, filename string) (string, error) {
 		tr := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}
-		client := &http.Client{Transport: tr}
+		client := &http.Client{
+			Transport: tr,
+			Timeout:   time.Second * 10,
+		}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 
@@ -904,20 +921,20 @@ func putSrc(api *APIHelper, url string, filename string) (string, error) {
 		check(err)
 		contentType := bodyWriter.FormDataContentType()
 
-		bodyWriter.WriteField("resources","[]")
+		bodyWriter.WriteField("resources", "[]")
 		bodyWriter.Close()
 
 		req, _ := http.NewRequest("PUT", apiendpoint+url, bodyBuf)
-		req.Header.Set("Authorization",accessToken)
+		req.Header.Set("Authorization", accessToken)
 		req.Header.Set("Content-Type", contentType)
 		resp, err := client.Do(req)
 		check(err)
 		defer resp.Body.Close()
 		_, err = ioutil.ReadAll(resp.Body)
 		check(err)
-		return "Uploaded src "+filename+" ("+resp.Status+")", nil
+		return "Uploaded src " + filename + " (" + resp.Status + ")", nil
 	} else {
-		return "Expected src "+filename+" doesn't exist in working directory!", nil
+		return "Expected src " + filename + " doesn't exist in working directory!", nil
 	}
 
 }
