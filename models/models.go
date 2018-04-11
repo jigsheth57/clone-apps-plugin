@@ -93,7 +93,7 @@ func (orgs *Orgs) ExportMetaOnly() string {
 
 func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	writeToJson(*orgs)
-	chBits := make(chan string, 3)
+	chBits := make(chan string, 10)
 	i := 0
 	for _, org := range *orgs {
 		for _, space := range org.Spaces {
@@ -198,7 +198,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 		iorgs = append(iorgs, iorg)
 	}
 
-	chBits := make(chan string, 3)
+	chBits := make(chan string, 10)
 	i := 0
 	for _, org := range iorgs {
 		for _, space := range org.Spaces {

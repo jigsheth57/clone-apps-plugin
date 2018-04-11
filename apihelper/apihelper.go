@@ -18,6 +18,7 @@ import (
 
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/jigsheth57/clone-apps-plugin/cfcurl"
+	"code.cloudfoundry.org/cli/plugin/models"
 )
 
 var (
@@ -109,6 +110,20 @@ type IServices []ImportedService
 type IApps []ImportedApp
 type ISpaces []ImportedSpace
 type IOrgs []ImportedOrg
+
+var client *http.Client
+
+func init() {
+	tr := &http.Transport{
+		MaxIdleConnsPerHost: 1024,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSHandshakeTimeout: 0 * time.Second,
+	}
+	client = &http.Client{
+		Transport: tr,
+		Timeout:   time.Second * 180,
+	}
+}
 
 //CFAPIHelper to wrap cf curl results
 type CFAPIHelper interface {
@@ -419,13 +434,13 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 		return
 	}
 	//fmt.Println("URL: "+apiendpoint+blobURL)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   time.Second * 10,
-	}
+	//tr := &http.Transport{
+	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	//}
+	//client := &http.Client{
+	//	Transport: tr,
+	//	Timeout:   time.Second * 30,
+	//}
 	req, _ := http.NewRequest("GET", apiendpoint+blobURL, nil)
 	accessToken, err := api.cli.AccessToken()
 	if nil != err {
@@ -433,8 +448,11 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	}
 	req.Header.Set("Authorization", accessToken)
 	res, err := client.Do(req)
-	//fmt.Println(err)
-	//fmt.Println("HTTP_STATUS: "+res.Status)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println("HTTP_STATUS: "+res.Status)
+	}
+	defer res.Body.Close()
 	body, err := ioutil.ReadAll(res.Body)
 	//fmt.Println(err)
 	// write whole the body
@@ -821,22 +839,27 @@ func (api *APIHelper) bindRoute(routeguid string, appguid string) error {
 func httpRequest(api *APIHelper, method string, url string, body string) (map[string]interface{}, error) {
 	apiendpoint, err := api.cli.ApiEndpoint()
 	check(err)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	client := &http.Client{
-		Transport: tr,
-		Timeout:   time.Second * 10,
-	}
+	//tr := &http.Transport{
+	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	//}
+	//client := &http.Client{
+	//	Transport: tr,
+	//	Timeout:   time.Second * 10,
+	//}
 	req, _ := http.NewRequest(method, apiendpoint+url, strings.NewReader(body))
 	accessToken, err := api.cli.AccessToken()
 	check(err)
 	req.Header.Set("Authorization", accessToken)
 	req.Header.Set("Content-Type", "application/json")
 	res, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err)
+		fmt.Println(res.Status)
+	}
 	check(err)
 	stscode := res.StatusCode
 	//fmt.Println(stscode)
+	defer res.Body.Close()
 	response, err := ioutil.ReadAll(res.Body)
 	if stscode >= 400 {
 		return nil, errors.New(string(response))
@@ -852,13 +875,13 @@ func putDroplet(api *APIHelper, url string, filename string) (string, error) {
 	if _, err := os.Stat(filename); err == nil {
 		apiendpoint, err := api.cli.ApiEndpoint()
 		check(err)
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{
-			Transport: tr
-			Timeout:   time.Second * 10,
-		}
+		//tr := &http.Transport{
+		//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		//}
+		//client := &http.Client{
+		//	Transport: tr,
+		//	Timeout:   time.Second * 180,
+		//}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 
@@ -901,7 +924,7 @@ func putSrc(api *APIHelper, url string, filename string) (string, error) {
 		}
 		client := &http.Client{
 			Transport: tr,
-			Timeout:   time.Second * 10,
+			Timeout:   time.Second * 180,
 		}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
