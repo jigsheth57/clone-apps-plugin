@@ -2,11 +2,12 @@ package models
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"fmt"
+	"io/ioutil"
+
+	"net/url"
 
 	"github.com/jigsheth57/clone-apps-plugin/apihelper"
-	"net/url"
 )
 
 type Org struct {
@@ -16,38 +17,38 @@ type Org struct {
 }
 
 type Space struct {
-	Name string
-	Apps Apps
+	Name     string
+	Apps     Apps
 	Services Services
 }
 
 //App representation
 type App struct {
-	Guid					string
-	Name					string
-	Memory					float64
-	Instances				float64
-	DiskQuota   			float64
-	State					string
-	Command					string
-	HealthCheckType			string
-	HealthCheckTimeout		float64
-	HealthCheckHttpEndpoint	string
-	Diego					bool
-	EnableSsh				bool
-	EnviornmentVar			map[string]interface{}
-	ServiceNames			[]interface{}
-	URLs					[]interface{}
+	Guid                    string
+	Name                    string
+	Memory                  float64
+	Instances               float64
+	DiskQuota               float64
+	State                   string
+	Command                 string
+	HealthCheckType         string
+	HealthCheckTimeout      float64
+	HealthCheckHttpEndpoint string
+	Diego                   bool
+	EnableSsh               bool
+	EnviornmentVar          map[string]interface{}
+	ServiceNames            []interface{}
+	URLs                    []interface{}
 }
 
 //Service representation
 type Service struct {
-	InstanceName	string
-	Label    		string
-	ServicePlan 	string
-	Type			string
-	Credentials		map[string]interface{}
-	SyslogDrain		string
+	InstanceName string
+	Label        string
+	ServicePlan  string
+	Type         string
+	Credentials  map[string]interface{}
+	SyslogDrain  string
 }
 
 type Orgs []Org
@@ -56,28 +57,28 @@ type Apps []App
 type Services []Service
 
 type ImportedOrg struct {
-	Guid	string
-	Name	string
-	Spaces	ISpaces
+	Guid   string
+	Name   string
+	Spaces ISpaces
 }
 
 type ImportedSpace struct {
-	Guid		string
-	Name		string
-	Apps		IApps
-	Services	IServices
+	Guid     string
+	Name     string
+	Apps     IApps
+	Services IServices
 }
 
 type ImportedApp struct {
-	Guid	string
-	Name	string
-	Droplet	string
-	Src		string
+	Guid    string
+	Name    string
+	Droplet string
+	Src     string
 }
 
 type ImportedService struct {
-	Guid	string
-	Name	string
+	Guid string
+	Name string
 }
 
 type IServices []ImportedService
@@ -92,11 +93,11 @@ func (orgs *Orgs) ExportMetaOnly() string {
 
 func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	writeToJson(*orgs)
-	chBits := make(chan string, 10)
+	chBits := make(chan string, 3)
 	i := 0
 	for _, org := range *orgs {
 		for _, space := range org.Spaces {
-			i += len(space.Apps)*2
+			i += len(space.Apps) * 2
 			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
 				//if(download) {
@@ -111,7 +112,7 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	for msg := range chBits {
 		i -= 1
 		fmt.Println("Wrote file: ", msg)
-		if(i==0) {
+		if i == 0 {
 			close(chBits)
 		}
 	}
@@ -122,40 +123,40 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	orgs := readToJson()
 	var iorgs IOrgs
 	for _, org := range orgs {
-		output, err := apiHelper.CheckOrg(org.Name,true)
+		output, err := apiHelper.CheckOrg(org.Name, true)
 		check(err)
 		iorg := ImportedOrg{
-			Guid:output.Guid,
-			Name:output.Name,
+			Guid: output.Guid,
+			Name: output.Name,
 		}
 		var ispaces ISpaces
 		for _, space := range org.Spaces {
-			output, err := apiHelper.CheckSpace(space.Name,iorg.Guid,true)
+			output, err := apiHelper.CheckSpace(space.Name, iorg.Guid, true)
 			check(err)
 			ispace := ImportedSpace{
-				Guid:output.Guid,
-				Name:output.Name,
+				Guid: output.Guid,
+				Name: output.Name,
 			}
 			var iservices IServices
 			var rservices apihelper.IServices
 			for _, service := range space.Services {
 				mservice := apihelper.Service{
 					InstanceName: service.InstanceName,
-					Label: service.Label,
-					ServicePlan: service.ServicePlan,
-					Type: service.Type,
-					Credentials: service.Credentials,
-					SyslogDrain: service.SyslogDrain,
+					Label:        service.Label,
+					ServicePlan:  service.ServicePlan,
+					Type:         service.Type,
+					Credentials:  service.Credentials,
+					SyslogDrain:  service.SyslogDrain,
 				}
-				output, err := apiHelper.CheckServiceInstance(mservice,ispace.Guid,true)
+				output, err := apiHelper.CheckServiceInstance(mservice, ispace.Guid, true)
 				check(err)
 				iservice := ImportedService{
-					Guid:output.Guid,
-					Name:output.Name,
+					Guid: output.Guid,
+					Name: output.Name,
 				}
 				rservice := apihelper.ImportedService{
-					Guid:output.Guid,
-					Name:output.Name,
+					Guid: output.Guid,
+					Name: output.Name,
 				}
 				iservices = append(iservices, iservice)
 				rservices = append(rservices, rservice)
@@ -164,29 +165,29 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			var iapps IApps
 			for _, app := range space.Apps {
 				mapp := apihelper.App{
-					Guid:app.Guid,
-					Name: app.Name,
-					Memory: app.Memory,
-					Instances: app.Instances,
-					DiskQuota: app.DiskQuota,
-					State: app.State,
-					Command: app.Command,
-					HealthCheckType: app.HealthCheckType,
-					HealthCheckTimeout: app.HealthCheckTimeout,
+					Guid:                    app.Guid,
+					Name:                    app.Name,
+					Memory:                  app.Memory,
+					Instances:               app.Instances,
+					DiskQuota:               app.DiskQuota,
+					State:                   app.State,
+					Command:                 app.Command,
+					HealthCheckType:         app.HealthCheckType,
+					HealthCheckTimeout:      app.HealthCheckTimeout,
 					HealthCheckHttpEndpoint: app.HealthCheckHttpEndpoint,
-					Diego: app.Diego,
-					EnableSsh: app.EnableSsh,
+					Diego:          app.Diego,
+					EnableSsh:      app.EnableSsh,
 					EnviornmentVar: app.EnviornmentVar,
-					URLs:app.URLs,
-					ServiceNames:app.ServiceNames,
+					URLs:           app.URLs,
+					ServiceNames:   app.ServiceNames,
 				}
-				output, err := apiHelper.CheckApp(mapp,rservices,ispace.Guid,true)
+				output, err := apiHelper.CheckApp(mapp, rservices, ispace.Guid, true)
 				check(err)
 				iapp := ImportedApp{
-					Guid:output.Guid,
-					Name:output.Name,
-					Droplet:output.Droplet,
-					Src:output.Src,
+					Guid:    output.Guid,
+					Name:    output.Name,
+					Droplet: output.Droplet,
+					Src:     output.Src,
 				}
 				iapps = append(iapps, iapp)
 			}
@@ -194,14 +195,14 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			ispaces = append(ispaces, ispace)
 		}
 		iorg.Spaces = ispaces
-		iorgs = append(iorgs,iorg)
+		iorgs = append(iorgs, iorg)
 	}
 
-	chBits := make(chan string, 10)
+	chBits := make(chan string, 3)
 	i := 0
 	for _, org := range iorgs {
 		for _, space := range org.Spaces {
-			i += len(space.Apps)*2
+			i += len(space.Apps) * 2
 			for _, app := range space.Apps {
 				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet, chBits)
 				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src, chBits)
@@ -212,27 +213,27 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	for msg := range chBits {
 		i -= 1
 		fmt.Println(msg)
-		if(i==0) {
+		if i == 0 {
 			close(chBits)
 		}
 	}
 
-	b, _ := json.MarshalIndent(iorgs,"","\t")
+	b, _ := json.MarshalIndent(iorgs, "", "\t")
 	err := ioutil.WriteFile("imported_apps.json", b, 0644)
 	check(err)
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
 }
 
 func writeToJson(orgs Orgs) {
-	b, _ := json.MarshalIndent(orgs,"","\t")
+	b, _ := json.MarshalIndent(orgs, "", "\t")
 	err := ioutil.WriteFile("apps.json", b, 0644)
 	check(err)
 }
-func readToJson()Orgs {
+func readToJson() Orgs {
 	var orgs Orgs
 	b, err := ioutil.ReadFile("apps.json")
 	check(err)
-	err = json.Unmarshal(b,&orgs)
+	err = json.Unmarshal(b, &orgs)
 	check(err)
 	return orgs
 }
