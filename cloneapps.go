@@ -17,7 +17,7 @@ type CloneAppsCmd struct {
 
 // contains CLI flag values
 type flagVal struct {
-	OrgName string
+	OrgName  string
 	Download string
 }
 
@@ -34,8 +34,8 @@ func ParseFlags(args []string) flagVal {
 	}
 
 	return flagVal{
-		OrgName: string(*orgName),
-		Download:  string(*bits),
+		OrgName:  string(*orgName),
+		Download: string(*bits),
 	}
 }
 
@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 11,
+			Build: 13,
 		},
 		Commands: []plugin.Command{
 			{
@@ -163,8 +163,8 @@ func (cmd *CloneAppsCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 		}
 		spaces = append(spaces,
 			models.Space{
-				Name: s.Name,
-				Apps: apps,
+				Name:     s.Name,
+				Apps:     apps,
 				Services: services,
 			},
 		)
@@ -181,31 +181,31 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 	var services = []models.Service{}
 	for _, a := range rawApps {
 		apps = append(apps, models.App{
-			Guid: a.Guid,
-			Name: a.Name,
-			Memory:a.Memory,
-			Instances:a.Instances,
-			DiskQuota:a.DiskQuota,
-			State:a.State,
-			Command:a.Command,
-			HealthCheckType:a.HealthCheckType,
-			HealthCheckTimeout:a.HealthCheckTimeout,
-			HealthCheckHttpEndpoint:a.HealthCheckHttpEndpoint,
-			Diego:a.Diego,
-			EnableSsh:a.EnableSsh,
-			EnviornmentVar:a.EnviornmentVar,
-			ServiceNames:a.ServiceNames,
-			URLs:a.URLs,
+			Guid:                    a.Guid,
+			Name:                    a.Name,
+			Memory:                  a.Memory,
+			Instances:               a.Instances,
+			DiskQuota:               a.DiskQuota,
+			State:                   a.State,
+			Command:                 a.Command,
+			HealthCheckType:         a.HealthCheckType,
+			HealthCheckTimeout:      a.HealthCheckTimeout,
+			HealthCheckHttpEndpoint: a.HealthCheckHttpEndpoint,
+			Diego:          a.Diego,
+			EnableSsh:      a.EnableSsh,
+			EnviornmentVar: a.EnviornmentVar,
+			ServiceNames:   a.ServiceNames,
+			URLs:           a.URLs,
 		})
 	}
 	for _, s := range rawServices {
 		services = append(services, models.Service{
 			InstanceName: s.InstanceName,
-			Label: s.Label,
-			ServicePlan: s.ServicePlan,
-			Type:s.Type,
-			Credentials:s.Credentials,
-			SyslogDrain:s.SyslogDrain,
+			Label:        s.Label,
+			ServicePlan:  s.ServicePlan,
+			Type:         s.Type,
+			Credentials:  s.Credentials,
+			SyslogDrain:  s.SyslogDrain,
 		})
 	}
 	return apps, services, nil
