@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 14,
+			Build: 15,
 		},
 		Commands: []plugin.Command{
 			{
@@ -181,7 +181,7 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 	var services = []models.Service{}
 	for _, a := range rawApps {
 		endpoint := a.HealthCheckHttpEndpoint
-		if (endpoint == "") {
+		if (a.HealthCheckType == "http" && endpoint == "") {
 			endpoint = "/"
 		}
 		apps = append(apps, models.App{
