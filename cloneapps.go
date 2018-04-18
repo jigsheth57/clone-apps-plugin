@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 13,
+			Build: 14,
 		},
 		Commands: []plugin.Command{
 			{
@@ -180,6 +180,10 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 	var apps = []models.App{}
 	var services = []models.Service{}
 	for _, a := range rawApps {
+		endpoint := a.HealthCheckHttpEndpoint
+		if (endpoint == "") {
+			endpoint = "/"
+		}
 		apps = append(apps, models.App{
 			Guid: a.Guid,
 			Name: a.Name,
@@ -190,7 +194,7 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 			Command:a.Command,
 			HealthCheckType:a.HealthCheckType,
 			HealthCheckTimeout:a.HealthCheckTimeout,
-			HealthCheckHttpEndpoint:a.HealthCheckHttpEndpoint,
+			HealthCheckHttpEndpoint:endpoint,
 			Diego:a.Diego,
 			EnableSsh:a.EnableSsh,
 			EnviornmentVar:a.EnviornmentVar,
