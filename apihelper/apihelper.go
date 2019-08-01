@@ -124,8 +124,8 @@ func init() {
 		MaxIdleConnsPerHost: 10,
 		DisableCompression: true,
 		IdleConnTimeout:    30 * time.Second,
-		ExpectContinueTimeout: 4 * time.Second,
-		ResponseHeaderTimeout: 3 * time.Second,
+		ExpectContinueTimeout: 10 * time.Second,
+		ResponseHeaderTimeout: 10 * time.Second,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		TLSHandshakeTimeout: 10 * time.Second,
 	}

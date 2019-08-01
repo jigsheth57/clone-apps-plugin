@@ -2,7 +2,12 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="24a23287-1501-4246-bc7e-de260ad570a4" name="Default" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apihelper/apihelper.go" beforeDir="false" afterPath="$PROJECT_DIR$/apihelper/apihelper.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/linux64/clone-apps-plugin" beforeDir="false" afterPath="$PROJECT_DIR$/bin/linux64/clone-apps-plugin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/osx/clone-apps-plugin" beforeDir="false" afterPath="$PROJECT_DIR$/bin/osx/clone-apps-plugin" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/win32/clone-apps-plugin.exe" beforeDir="false" afterPath="$PROJECT_DIR$/bin/win32/clone-apps-plugin.exe" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/bin/win64/clone-apps-plugin.exe" beforeDir="false" afterPath="$PROJECT_DIR$/bin/win64/clone-apps-plugin.exe" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -51,8 +56,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="561">
-              <caret line="466" selection-start-line="466" selection-end-line="466" />
+            <state relative-caret-position="163">
+              <caret line="114" column="23" selection-start-line="114" selection-start-column="23" selection-end-line="114" selection-end-column="23" />
               <folding>
                 <element signature="e#19#314#0" expanded="true" />
               </folding>
@@ -337,8 +342,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="561">
-          <caret line="466" selection-start-line="466" selection-end-line="466" />
+        <state relative-caret-position="163">
+          <caret line="114" column="23" selection-start-line="114" selection-start-column="23" selection-end-line="114" selection-end-column="23" />
           <folding>
             <element signature="e#19#314#0" expanded="true" />
           </folding>
