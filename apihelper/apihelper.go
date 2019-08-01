@@ -463,7 +463,7 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	}
 	defer res.Body.Close()
 	fmt.Println("HTTP_STATUS: "+res.Status)
-	fmt.Println("ContentLength: "+string(res.ContentLength))
+	fmt.Println("ContentLength: "+strconv.FormatInt(res.ContentLength, 10))
 
 	body, err := ioutil.ReadAll(res.Body)
 	//fmt.Println(err)
