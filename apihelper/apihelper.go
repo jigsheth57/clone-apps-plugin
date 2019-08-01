@@ -124,10 +124,10 @@ func init() {
 		MaxIdleConnsPerHost: 10,
 		DisableCompression: true,
 		IdleConnTimeout:    30 * time.Second,
-		ExpectContinueTimeout: 10 * time.Second,
-		ResponseHeaderTimeout: 10 * time.Second,
+		ExpectContinueTimeout: 60 * time.Second,
+		ResponseHeaderTimeout: 60 * time.Second,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		TLSHandshakeTimeout: 10 * time.Second,
+		TLSHandshakeTimeout: 60 * time.Second,
 	}
 	client = &http.Client{
 		Transport: tr,
