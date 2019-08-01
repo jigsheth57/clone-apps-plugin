@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="24a23287-1501-4246-bc7e-de260ad570a4" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apihelper/apihelper.go" beforeDir="false" afterPath="$PROJECT_DIR$/apihelper/apihelper.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -52,8 +51,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="615">
-              <caret line="473" column="1" lean-forward="true" selection-start-line="473" selection-start-column="1" selection-end-line="473" selection-end-column="1" />
+            <state relative-caret-position="561">
+              <caret line="466" selection-start-line="466" selection-end-line="466" />
               <folding>
                 <element signature="e#19#314#0" expanded="true" />
               </folding>
@@ -338,8 +337,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/apihelper/apihelper.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="615">
-          <caret line="473" column="1" lean-forward="true" selection-start-line="473" selection-start-column="1" selection-end-line="473" selection-end-column="1" />
+        <state relative-caret-position="561">
+          <caret line="466" selection-start-line="466" selection-end-line="466" />
           <folding>
             <element signature="e#19#314#0" expanded="true" />
           </folding>

@@ -460,8 +460,10 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	if err != nil {
 		fmt.Println(err)
 		fmt.Println("HTTP_STATUS: "+res.Status)
+		fmt.Println("HTTP_URL: "+apiendpoint+blobURL)
 	}
 	defer res.Body.Close()
+	fmt.Println("HTTP_URL: "+apiendpoint+blobURL)
 	fmt.Println("HTTP_STATUS: "+res.Status)
 	fmt.Println("ContentLength: "+strconv.FormatInt(res.ContentLength, 10))
 
