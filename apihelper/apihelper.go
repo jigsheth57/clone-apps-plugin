@@ -933,13 +933,13 @@ func putSrc(api *APIHelper, url string, filename string) (string, error) {
 	if _, err := os.Stat(filename); err == nil {
 		apiendpoint, err := api.cli.ApiEndpoint()
 		check(err)
-		tr := &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		}
-		client := &http.Client{
-			Transport: tr,
-			Timeout:   time.Second * 180,
-		}
+		//tr := &http.Transport{
+		//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		//}
+		//client := &http.Client{
+		//	Transport: tr,
+		//	Timeout:   time.Second * 180,
+		//}
 		accessToken, err := api.cli.AccessToken()
 		check(err)
 
