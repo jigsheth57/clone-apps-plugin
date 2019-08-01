@@ -9,6 +9,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -115,11 +116,18 @@ var client *http.Client
 
 func init() {
 	tr := &http.Transport{
+		DialContext:(&net.Dialer{
+			Timeout:   60 * time.Second,
+			KeepAlive: 60 * time.Second,
+		}).DialContext,
+		MaxConnsPerHost: 10,
 		MaxIdleConnsPerHost: 10,
-		IdleConnTimeout:    30 * time.Second,
 		DisableCompression: true,
+		IdleConnTimeout:    30 * time.Second,
+		ExpectContinueTimeout: 4 * time.Second,
+		ResponseHeaderTimeout: 3 * time.Second,
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		TLSHandshakeTimeout: 0 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
 	}
 	client = &http.Client{
 		Transport: tr,
@@ -454,6 +462,9 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 		fmt.Println("HTTP_STATUS: "+res.Status)
 	}
 	defer res.Body.Close()
+	fmt.Println("HTTP_STATUS: "+res.Status)
+	fmt.Println("ContentLength: "+string(res.ContentLength))
+
 	body, err := ioutil.ReadAll(res.Body)
 	//fmt.Println(err)
 	// write whole the body
