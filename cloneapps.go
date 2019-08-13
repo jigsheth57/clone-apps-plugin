@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 17,
+			Build: 18,
 		},
 		Commands: []plugin.Command{
 			{
@@ -79,17 +79,19 @@ func (cmd *CloneAppsCmd) ExportAppsCmd(args []string) {
 	flagVals := ParseFlags(args)
 
 	var orgs models.Orgs
+	var quotas models.Quotas
 	var err error
 
+	quotas, err = cmd.getOrgQuota()
 	if flagVals.OrgName != "" {
-		org, err := cmd.getOrg(flagVals.OrgName)
+		org, err := cmd.getOrg(flagVals.OrgName, quotas)
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
 		}
 		orgs = append(orgs, org)
 	} else {
-		orgs, err = cmd.getOrgs()
+		orgs, err = cmd.getOrgs(quotas)
 		if nil != err {
 			fmt.Println(err)
 			os.Exit(1)
@@ -107,7 +109,35 @@ func (cmd *CloneAppsCmd) ImportAppsCmd(args []string) {
 	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper))
 }
 
-func (cmd *CloneAppsCmd) getOrgs() ([]models.Org, error) {
+func (cmd *CloneAppsCmd) getOrgQuota() (models.Quotas, error) {
+	rawQuotas, err := cmd.apiHelper.GetOrgQuota()
+	if nil != err {
+		return nil, err
+	}
+
+	var quotas = models.Quotas{}
+
+	for key, q := range rawQuotas {
+		quotas[key] =
+			models.Quota{
+				Name:       				q.Name,
+				NonBasicServicesAllowed:	q.NonBasicServicesAllowed,
+				TotalServices:				q.TotalServices,
+				TotalRoutes:				q.TotalRoutes,
+				TotalPrivateDomain:			q.TotalPrivateDomain,
+				MemoryLimit:				q.MemoryLimit,
+				TrialDBAllowed:				q.TrialDBAllowed,
+				InstanceMemoryLimit:		q.InstanceMemoryLimit,
+				AppInstanceLimit:			q.AppInstanceLimit,
+				AppTaskLimit:				q.AppTaskLimit,
+				TotalServiceKeys:			q.TotalServiceKeys,
+				TotalReservedRoutePorts:	q.TotalReservedRoutePorts,
+			}
+	}
+	return quotas, nil
+}
+
+func (cmd *CloneAppsCmd) getOrgs(quotas models.Quotas) ([]models.Org, error) {
 	rawOrgs, err := cmd.apiHelper.GetOrgs()
 	if nil != err {
 		return nil, err
@@ -116,7 +146,7 @@ func (cmd *CloneAppsCmd) getOrgs() ([]models.Org, error) {
 	var orgs = []models.Org{}
 
 	for _, o := range rawOrgs {
-		orgDetails, err := cmd.getOrgDetails(o)
+		orgDetails, err := cmd.getOrgDetails(o,quotas)
 		if err != nil {
 			return nil, err
 		}
@@ -125,28 +155,28 @@ func (cmd *CloneAppsCmd) getOrgs() ([]models.Org, error) {
 	return orgs, nil
 }
 
-func (cmd *CloneAppsCmd) getOrg(name string) (models.Org, error) {
+func (cmd *CloneAppsCmd) getOrg(name string, quotas models.Quotas) (models.Org, error) {
 	rawOrg, err := cmd.apiHelper.GetOrg(name)
 	if nil != err {
 		return models.Org{}, err
 	}
 
-	return cmd.getOrgDetails(rawOrg)
+	return cmd.getOrgDetails(rawOrg, quotas)
 }
 
-func (cmd *CloneAppsCmd) getOrgDetails(o apihelper.Organization) (models.Org, error) {
-	quota, err := cmd.apiHelper.GetQuotaMemoryLimit(o.QuotaURL)
-	if nil != err {
-		return models.Org{}, err
+func (cmd *CloneAppsCmd) getOrgDetails(o apihelper.Organization, quotas models.Quotas) (models.Org, error) {
+	var quota = models.Quota{}
+	if q, found := quotas[o.QuotaGUID]; found {
+		quota = q
 	}
 	spaces, err := cmd.getSpaces(o.SpacesURL)
 	if nil != err {
 		return models.Org{}, err
 	}
 	return models.Org{
-		Name:        o.Name,
-		MemoryQuota: int(quota),
-		Spaces:      spaces,
+		Name:       o.Name,
+		Quota: 		quota,
+		Spaces:     spaces,
 	}, nil
 }
 
@@ -157,7 +187,7 @@ func (cmd *CloneAppsCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 	}
 	var spaces = []models.Space{}
 	for _, s := range rawSpaces {
-		apps, services, err := cmd.getAppsAndServices(s.SummaryURL)
+		apps, services, securityGroups, stagingSecurityGroups, err := cmd.getAppsAndServices(s)
 		if nil != err {
 			return nil, err
 		}
@@ -166,19 +196,23 @@ func (cmd *CloneAppsCmd) getSpaces(spaceURL string) ([]models.Space, error) {
 				Name: s.Name,
 				Apps: apps,
 				Services: services,
+				SecurityGroup: securityGroups,
+				StagingSecurityGroup: stagingSecurityGroups,
 			},
 		)
 	}
 	return spaces, nil
 }
 
-func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []models.Service, error) {
-	rawApps, rawServices, err := cmd.apiHelper.GetSpaceAppsAndServices(summaryURL)
+func (cmd *CloneAppsCmd) getAppsAndServices(space apihelper.Space) ([]models.App, []models.Service, []models.SecurityGroup, []models.SecurityGroup, error) {
+	rawApps, rawServices, rawSecurityGroups, rawStagingSecurityGroups, err := cmd.apiHelper.GetSpaceAppsAndServices(space)
 	if nil != err {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 	var apps = []models.App{}
 	var services = []models.Service{}
+	var securityGroups = []models.SecurityGroup{}
+	var stagingSecurityGroups = []models.SecurityGroup{}
 	for _, a := range rawApps {
 		endpoint := a.HealthCheckHttpEndpoint
 		if (a.HealthCheckType == "http" && endpoint == "") {
@@ -212,7 +246,46 @@ func (cmd *CloneAppsCmd) getAppsAndServices(summaryURL string) ([]models.App, []
 			SyslogDrain:s.SyslogDrain,
 		})
 	}
-	return apps, services, nil
+	for _, sg := range rawSecurityGroups {
+		rules := []models.Rule{}
+		for _, r := range sg.Rules {
+			rules = append(rules,
+				models.Rule{
+					Description: r.Description,
+					Destination: r.Destination,
+					Log:         r.Log,
+					Ports:       r.Ports,
+					Protocol:    r.Protocol,
+				})
+		}
+		securityGroups = append(securityGroups, models.SecurityGroup{
+			Name:           sg.Name,
+			Rules:          rules,
+			RunningDefault: sg.RunningDefault,
+			StagingDefault: sg.StagingDefault,
+		})
+	}
+	for _, ssg := range rawStagingSecurityGroups {
+		rules := []models.Rule{}
+		for _, r := range ssg.Rules {
+			rules = append(rules,
+				models.Rule{
+					Description: r.Description,
+					Destination: r.Destination,
+					Log:         r.Log,
+					Ports:       r.Ports,
+					Protocol:    r.Protocol,
+				})
+		}
+		stagingSecurityGroups = append(stagingSecurityGroups, models.SecurityGroup{
+			Name:           ssg.Name,
+			Rules:          rules,
+			RunningDefault: ssg.RunningDefault,
+			StagingDefault: ssg.StagingDefault,
+		})
+	}
+
+	return apps, services, securityGroups, stagingSecurityGroups, nil
 }
 
 //Run runs the plugin

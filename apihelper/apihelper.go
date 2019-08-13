@@ -38,14 +38,16 @@ var (
 //Organization representation
 type Organization struct {
 	Name      string
-	QuotaURL  string
+	QuotaGUID  string
 	SpacesURL string
 }
 
 //Space representation
 type Space struct {
-	Name       string
-	SummaryURL string
+	Name       				string
+	SummaryURL 				string
+	SecurityGroupURL		string
+	StagingSecurityGroupURL	string
 }
 
 //App representation
@@ -77,7 +79,40 @@ type Service struct {
 	SyslogDrain  string
 }
 
+type Quota struct {
+	Name 					string
+	NonBasicServicesAllowed	bool
+	TotalServices			float64
+	TotalRoutes				float64
+	TotalPrivateDomain		float64
+	MemoryLimit				float64
+	TrialDBAllowed			bool
+	InstanceMemoryLimit		float64
+	AppInstanceLimit		float64
+	AppTaskLimit			float64
+	TotalServiceKeys		float64
+	TotalReservedRoutePorts	float64
+}
+
+type SecurityGroup	struct {
+	Name			string
+	Rules			Rules
+	RunningDefault	bool
+	StagingDefault	bool
+}
+
+type Rule struct {
+	Description		string
+	Destination		string
+	Log				bool
+	Ports			string
+	Protocol		string
+}
+
 type Orgs []Organization
+type Quotas map[string]Quota
+type Rules	[]Rule
+type SecurityGroups	[]SecurityGroup
 type Spaces []Space
 type Apps []App
 type Services []Service
@@ -140,9 +175,11 @@ type CFAPIHelper interface {
 	GetOrg(string) (Organization, error)
 	GetDomainGuid(name string) (string, error)
 	GetServiceInstanceGuid(name string, stype string, spaceguid string) (string, error)
+	GetOrgQuota() (Quotas, error)
+	GetSecurityGroups() (map[string]SecurityGroup, error)
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
-	GetSpaceAppsAndServices(string) (Apps, Services, error)
+	GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error)
 	GetBlob(blobURL string, filename string, c chan string)
 	PutBlob(blobURL string, filename string, c chan string)
 	CheckOrg(name string, create bool) (ImportedOrg, error)
@@ -182,7 +219,7 @@ func (api *APIHelper) GetOrgs() (Orgs, error) {
 			orgs = append(orgs,
 				Organization{
 					Name:      name,
-					QuotaURL:  entity["quota_definition_url"].(string),
+					QuotaGUID:  entity["quota_definition_guid"].(string),
 					SpacesURL: entity["spaces_url"].(string),
 				})
 		}
@@ -215,7 +252,7 @@ func (api *APIHelper) orgResourceToOrg(o interface{}) Organization {
 	entity := theOrg["entity"].(map[string]interface{})
 	return Organization{
 		Name:      entity["name"].(string),
-		QuotaURL:  entity["quota_definition_url"].(string),
+		QuotaGUID:  entity["quota_definition_guid"].(string),
 		SpacesURL: entity["spaces_url"].(string),
 	}
 }
@@ -269,6 +306,87 @@ func (api *APIHelper) GetServiceInstanceGuid(name string, stype string, spacegui
 
 	return guid, nil
 }
+
+//GetOrgQuota returns Quotas
+func (api *APIHelper) GetOrgQuota() (Quotas, error) {
+	nextURL := "/v2/quota_definitions"
+	quotas := make(Quotas)
+	for nextURL != "" {
+		quotasJSON, err := cfcurl.Curl(api.cli, nextURL)
+		if nil != err {
+			return nil, err
+		}
+		for _, s := range quotasJSON["resources"].([]interface{}) {
+			theQuota := s.(map[string]interface{})
+			metadata := theQuota["metadata"].(map[string]interface{})
+			entity := theQuota["entity"].(map[string]interface{})
+			quotas[metadata["guid"].(string)] =
+				Quota{
+					Name:       				entity["name"].(string),
+					NonBasicServicesAllowed:	entity["non_basic_services_allowed"].(bool),
+					TotalServices:				entity["total_services"].(float64),
+					TotalRoutes:				entity["total_routes"].(float64),
+					TotalPrivateDomain:			entity["total_private_domains"].(float64),
+					MemoryLimit:				entity["memory_limit"].(float64),
+					TrialDBAllowed:				entity["trial_db_allowed"].(bool),
+					InstanceMemoryLimit:		entity["instance_memory_limit"].(float64),
+					AppInstanceLimit:			entity["app_instance_limit"].(float64),
+					AppTaskLimit:				entity["app_task_limit"].(float64),
+					TotalServiceKeys:			entity["total_service_keys"].(float64),
+					TotalReservedRoutePorts:	entity["total_reserved_route_ports"].(float64),
+				}
+		}
+		if next, ok := quotasJSON["next_url"].(string); ok {
+			nextURL = next
+		} else {
+			nextURL = ""
+		}
+	}
+	return quotas, nil
+}
+
+//GetSecurityGroups returns SecurityGroups
+func (api *APIHelper) GetSecurityGroups() (map[string]SecurityGroup, error) {
+	nextURL := "/v2/security_groups"
+	securitygroups := make(map[string]SecurityGroup)
+	for nextURL != "" {
+		securitygroupsJSON, err := cfcurl.Curl(api.cli, nextURL)
+		if nil != err {
+			return nil, err
+		}
+		for _, s := range securitygroupsJSON["resources"].([]interface{}) {
+			theSecurityGroup := s.(map[string]interface{})
+			metadata := theSecurityGroup["metadata"].(map[string]interface{})
+			entity := theSecurityGroup["entity"].(map[string]interface{})
+			rules := make(Rules, len(entity["rules"].([]interface{})))
+			for _, r := range entity["rules"].([]interface{}) {
+				rule := r.(map[string]interface{})
+				rules = append(rules,
+					Rule{
+					Description: rule["description"].(string),
+					Destination: rule["destination"].(string),
+					Log:         rule["log"].(bool),
+					Ports:       rule["ports"].(string),
+					Protocol:    rule["protocol"].(string),
+				})
+			}
+			securitygroups[metadata["guid"].(string)] =
+				SecurityGroup{
+					Name:           entity["name"].(string),
+					Rules:          rules,
+					RunningDefault: entity["running_default"].(bool),
+					StagingDefault: entity["staging_default"].(bool),
+				}
+		}
+		if next, ok := securitygroupsJSON["next_url"].(string); ok {
+			nextURL = next
+		} else {
+			nextURL = ""
+		}
+	}
+	return securitygroups, nil
+}
+
 
 //getServicePlanGuid returns a managed service plan guid
 func (api *APIHelper) getServicePlanGuid(label string, plan string) (string, error) {
@@ -330,6 +448,8 @@ func (api *APIHelper) GetOrgSpaces(spacesURL string) (Spaces, error) {
 				Space{
 					Name:       entity["name"].(string),
 					SummaryURL: metadata["url"].(string) + "/summary",
+					SecurityGroupURL: metadata["url"].(string) + "/security_groups",
+					StagingSecurityGroupURL: metadata["url"].(string) + "/staging_security_groups",
 				})
 		}
 		if next, ok := spacesJSON["next_url"].(string); ok {
@@ -342,13 +462,25 @@ func (api *APIHelper) GetOrgSpaces(spacesURL string) (Spaces, error) {
 }
 
 //GetSpaceAppsAndServices returns the apps and the services in a space
-func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services, error) {
+func (api *APIHelper) GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error) {
 	apps := []App{}
 	services := []Service{}
-	summaryJSON, err := cfcurl.Curl(api.cli, summaryURL)
+	securityGroups := []SecurityGroup{}
+	stagingSecurityGroup := []SecurityGroup{}
+	summaryJSON, err := cfcurl.Curl(api.cli, space.SummaryURL)
 	if nil != err {
-		return nil, nil, err
+		return nil, nil, nil, nil, err
 	}
+	apps,_ = GetApps(summaryJSON)
+	services,_ = GetServices(api,summaryJSON)
+	securityGroups,_ = GetSecurityGroups(api,space.SecurityGroupURL)
+	stagingSecurityGroup,_ = GetSecurityGroups(api,space.StagingSecurityGroupURL)
+
+	return apps, services, securityGroups, stagingSecurityGroup, nil
+}
+
+func GetApps(summaryJSON map[string]interface{}) (Apps, error) {
+	apps := []App{}
 	if _, ok := summaryJSON["apps"]; ok {
 		for _, a := range summaryJSON["apps"].([]interface{}) {
 			theApp := a.(map[string]interface{})
@@ -386,6 +518,11 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 				})
 		}
 	}
+	return apps, nil
+}
+
+func GetServices(api *APIHelper, summaryJSON map[string]interface{}) (Services, error) {
+	services := []Service{}
 	if _, ok := summaryJSON["services"]; ok {
 		for _, s := range summaryJSON["services"].([]interface{}) {
 			theService := s.(map[string]interface{})
@@ -410,7 +547,7 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 				instanceURL := "/v2/service_instances/" + guid
 				cupsJSON, err := cfcurl.Curl(api.cli, instanceURL)
 				if nil != err {
-					return nil, nil, err
+					return nil, err
 				}
 				if _, ok := cupsJSON["entity"]; ok {
 					entity := cupsJSON["entity"].(map[string]interface{})
@@ -433,8 +570,80 @@ func (api *APIHelper) GetSpaceAppsAndServices(summaryURL string) (Apps, Services
 			}
 		}
 	}
-	return apps, services, nil
+	return services, nil
 }
+
+func GetSecurityGroups(api *APIHelper, securityGroupURL string) (SecurityGroups, error) {
+	nextURL := securityGroupURL
+	securitygroups := []SecurityGroup{}
+	for nextURL != "" {
+		securitygroupsJSON, err := cfcurl.Curl(api.cli, nextURL)
+		if nil != err {
+			return nil, err
+		}
+		for _, s := range securitygroupsJSON["resources"].([]interface{}) {
+			theSecurityGroup := s.(map[string]interface{})
+			entity := theSecurityGroup["entity"].(map[string]interface{})
+			rules := []Rule{}
+			for _, r := range entity["rules"].([]interface{}) {
+				rule := r.(map[string]interface{})
+				description := ""
+				if des, ok := rule["description"].(string); ok {
+					description = des
+				} else {
+					description = ""
+				}
+				destination := ""
+				if dest, ok := rule["destination"].(string); ok {
+					destination = dest
+				} else {
+					destination = ""
+				}
+				log := false
+				if lg, ok := rule["log"].(bool); ok {
+					log = lg
+				} else {
+					log = false
+				}
+				ports := ""
+				if pt, ok := rule["ports"].(string); ok {
+					ports = pt
+				} else {
+					ports = ""
+				}
+				protocol := ""
+				if pl, ok := rule["protocol"].(string); ok {
+					protocol = pl
+				} else {
+					protocol = ""
+				}
+				rules = append(rules,
+					Rule{
+						Description: description,
+						Destination: destination,
+						Log:         log,
+						Ports:       ports,
+						Protocol:    protocol,
+					})
+			}
+			securitygroups = append(securitygroups,
+				SecurityGroup{
+					Name:           entity["name"].(string),
+					Rules:          rules,
+					RunningDefault: entity["running_default"].(bool),
+					StagingDefault: entity["staging_default"].(bool),
+				})
+		}
+		if next, ok := securitygroupsJSON["next_url"].(string); ok {
+			nextURL = next
+		} else {
+			nextURL = ""
+		}
+	}
+	return securitygroups, nil
+}
+
+
 
 //Download file
 func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
@@ -459,8 +668,8 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	res, err := client.Do(req)
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println("HTTP_STATUS: "+res.Status)
 		fmt.Println("HTTP_URL: "+apiendpoint+blobURL)
+		fmt.Println("HTTP_STATUS: "+res.Status)
 	}
 	defer res.Body.Close()
 	fmt.Println("HTTP_URL: "+apiendpoint+blobURL)

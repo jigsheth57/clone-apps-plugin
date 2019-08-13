@@ -12,14 +12,16 @@ import (
 
 type Org struct {
 	Name        string
-	MemoryQuota int
+	Quota		Quota
 	Spaces      Spaces
 }
 
 type Space struct {
-	Name     string
-	Apps     Apps
-	Services Services
+	Name     				string
+	Apps     				Apps
+	Services 				Services
+	SecurityGroup			SecurityGroups
+	StagingSecurityGroup	SecurityGroups
 }
 
 //App representation
@@ -51,7 +53,40 @@ type Service struct {
 	SyslogDrain  string
 }
 
+type Quota struct {
+	Name 					string
+	NonBasicServicesAllowed	bool
+	TotalServices			float64
+	TotalRoutes				float64
+	TotalPrivateDomain		float64
+	MemoryLimit				float64
+	TrialDBAllowed			bool
+	InstanceMemoryLimit		float64
+	AppInstanceLimit		float64
+	AppTaskLimit			float64
+	TotalServiceKeys		float64
+	TotalReservedRoutePorts	float64
+}
+
+type SecurityGroup	struct {
+	Name			string
+	Rules			Rules
+	RunningDefault	bool
+	StagingDefault	bool
+}
+
+type Rule struct {
+	Description		string
+	Destination		string
+	Log				bool
+	Ports			string
+	Protocol		string
+}
+
 type Orgs []Org
+type Quotas map[string]Quota
+type Rules	[]Rule
+type SecurityGroups	[]SecurityGroup
 type Spaces []Space
 type Apps []App
 type Services []Service
