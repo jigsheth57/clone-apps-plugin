@@ -717,29 +717,30 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		switch {
 		case s >= 500:
 			// Retry
-			filename = filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
+			errfilename := filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
 			body, err := ioutil.ReadAll(res.Body)
 			check(err)
-			err = ioutil.WriteFile(filename, body, 0644)
+			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
+			log.Println("Wrote file: ", errfilename)
 			return fmt.Errorf("server error: %v", s)
 		case s == 404:
 			// Don't retry, it was client's fault
-			filename = filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
+			errfilename := filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
 			body, err := ioutil.ReadAll(res.Body)
 			check(err)
-			err = ioutil.WriteFile(filename, body, 0644)
+			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
-			log.Println("Wrote file: ", filename)
+			log.Println("Wrote file: ", errfilename)
 			return stop{fmt.Errorf("client error: %v", s)}
 		case s == 408:
 			// Retry timeout
-			filename = filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
+			errfilename := filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
 			body, err := ioutil.ReadAll(res.Body)
 			check(err)
-			err = ioutil.WriteFile(filename, body, 0644)
+			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
-			log.Println("Wrote file: ", filename)
+			log.Println("Wrote file: ", errfilename)
 			return fmt.Errorf("client error: %v", s)
 		default:
 			// Happy
