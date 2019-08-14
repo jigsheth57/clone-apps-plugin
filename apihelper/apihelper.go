@@ -19,6 +19,7 @@ import (
 
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/jigsheth57/clone-apps-plugin/cfcurl"
+	"github.com/dustin/go-humanize"
 	"code.cloudfoundry.org/cli/plugin/models"
 )
 
@@ -180,7 +181,7 @@ type CFAPIHelper interface {
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error)
-	GetBlob(blobURL string, filename string, c chan string)
+	GetBlob(orgname string, spacename string, blobURL string, filename string, c chan string)
 	PutBlob(blobURL string, filename string, c chan string)
 	CheckOrg(name string, create bool) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
@@ -647,7 +648,7 @@ func GetSecurityGroups(api *APIHelper, securityGroupURL string) (SecurityGroups,
 
 
 //Download file
-func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
+func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string, c chan string) {
 	apiendpoint, err := api.cli.ApiEndpoint()
 	if nil != err {
 		return
@@ -675,12 +676,14 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	defer res.Body.Close()
 	fmt.Println("HTTP_URL: "+apiendpoint+blobURL)
 	fmt.Println("HTTP_STATUS: "+res.Status)
-	fmt.Println("ContentLength: "+strconv.FormatInt(res.ContentLength, 10))
+	//fmt.Println("ContentLength: "+strconv.FormatInt(res.ContentLength, 10))
+	fmt.Println("ContentLength: "+humanize.Bytes(uint64(res.ContentLength)))
 
 	body, err := ioutil.ReadAll(res.Body)
 	//fmt.Println(err)
 	// write whole the body
 	if res.ContentLength < 200 && res.StatusCode != 200 {
+		fmt.Println(orgname," -> ",spacename," -> ",filename)
 		filename = filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
 	}
 	err = ioutil.WriteFile(filename, body, 0644)
