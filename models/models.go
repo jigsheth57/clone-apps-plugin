@@ -3,7 +3,9 @@ package models
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"io/ioutil"
+	"sync"
 
 	"net/url"
 
@@ -128,7 +130,8 @@ func (orgs *Orgs) ExportMetaOnly() string {
 
 func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	writeToJson(*orgs)
-	chBits := make(chan string, 2)
+	//chBits := make(chan string, 2)
+	var wg sync.WaitGroup
 	i := 0
 	for _, org := range *orgs {
 		for _, space := range org.Spaces {
@@ -136,21 +139,23 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
 				//if(download) {
-				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", chBits)
-				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", chBits)
+				wg.Add(2)
+				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", &wg)
+				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", &wg)
 				//}
 			}
 		}
 	}
-	fmt.Println("Number of app bits to download ", i)
+	log.Println("Number of app bits to download ", i)
+	wg.Wait()
 	//i = 4
-	for msg := range chBits {
-		i -= 1
-		fmt.Println("Wrote file: ", msg)
-		if i == 0 {
-			close(chBits)
-		}
-	}
+	//for msg := range chBits {
+	//	i -= 1
+	//	log.Println("Wrote file: ", msg)
+	//	if i == 0 {
+	//		close(chBits)
+	//	}
+	//}
 	return "Succefully exported apps metadata to apps.json file and downloaded all bits."
 }
 
