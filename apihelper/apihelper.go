@@ -213,13 +213,13 @@ func (api *APIHelper) GetOrgs() (Orgs, error) {
 			theOrg := o.(map[string]interface{})
 			entity := theOrg["entity"].(map[string]interface{})
 			name := entity["name"].(string)
-			if name == "system" {
+			if name == "system" || name == "p-spring-cloud-services" {
 				continue
 			}
 			orgs = append(orgs,
 				Organization{
 					Name:      name,
-					QuotaGUID:  entity["quota_definition_guid"].(string),
+					QuotaGUID: entity["quota_definition_guid"].(string),
 					SpacesURL: entity["spaces_url"].(string),
 				})
 		}
@@ -252,7 +252,7 @@ func (api *APIHelper) orgResourceToOrg(o interface{}) Organization {
 	entity := theOrg["entity"].(map[string]interface{})
 	return Organization{
 		Name:      entity["name"].(string),
-		QuotaGUID:  entity["quota_definition_guid"].(string),
+		QuotaGUID: entity["quota_definition_guid"].(string),
 		SpacesURL: entity["spaces_url"].(string),
 	}
 }
@@ -680,6 +680,9 @@ func (api *APIHelper) GetBlob(blobURL string, filename string, c chan string) {
 	body, err := ioutil.ReadAll(res.Body)
 	//fmt.Println(err)
 	// write whole the body
+	if res.ContentLength < 200 && res.StatusCode != 200 {
+		filename = filename + ".error." + strconv.FormatInt(int64(res.StatusCode), 10)
+	}
 	err = ioutil.WriteFile(filename, body, 0644)
 	check(err)
 	c <- filename
