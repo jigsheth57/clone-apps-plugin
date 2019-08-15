@@ -48,6 +48,7 @@ type Organization struct {
 
 //Space representation
 type Space struct {
+	Guid					string
 	Name       				string
 	SummaryURL 				string
 	SecurityGroupURL		string
@@ -450,6 +451,7 @@ func (api *APIHelper) GetOrgSpaces(spacesURL string) (Spaces, error) {
 			entity := theSpace["entity"].(map[string]interface{})
 			spaces = append(spaces,
 				Space{
+					Guid:		metadata["guid"].(string),
 					Name:       entity["name"].(string),
 					SummaryURL: metadata["url"].(string) + "/summary",
 					SecurityGroupURL: metadata["url"].(string) + "/security_groups",
@@ -475,7 +477,7 @@ func (api *APIHelper) GetSpaceAppsAndServices(space Space) (Apps, Services, Secu
 	if nil != err {
 		return nil, nil, nil, nil, err
 	}
-	apps,_ = GetApps(summaryJSON)
+	apps,_ = GetApps(api,space.Guid, summaryJSON)
 	services,_ = GetServices(api,summaryJSON)
 	securityGroups,_ = GetSecurityGroups(api,space.SecurityGroupURL)
 	stagingSecurityGroup,_ = GetSecurityGroups(api,space.StagingSecurityGroupURL)
@@ -483,7 +485,30 @@ func (api *APIHelper) GetSpaceAppsAndServices(space Space) (Apps, Services, Secu
 	return apps, services, securityGroups, stagingSecurityGroup, nil
 }
 
-func GetApps(summaryJSON map[string]interface{}) (Apps, error) {
+func GetApps(api *APIHelper, spaceGuid string, summaryJSON map[string]interface{}) (Apps, error) {
+	// workaround to get real app guids
+	nextURL := "/v3/apps?space_guids=" + spaceGuid
+	appsList := make(map[string]string)
+	for nextURL != "" {
+		appsJSON, err := cfcurl.Curl(api.cli, nextURL)
+		if nil != err {
+			return nil, err
+		}
+		for _, a := range appsJSON["resources"].([]interface{}) {
+			theApp := a.(map[string]interface{})
+			name := theApp["name"].(string)
+			guid := theApp["guid"].(string)
+			appsList[name] = guid
+		}
+		pagination := appsJSON["pagination"].(map[string]interface{})
+		if next, ok := pagination["next"].(string); ok {
+			nextURL = next
+		} else {
+			nextURL = ""
+		}
+	}
+
+
 	apps := []App{}
 	if _, ok := summaryJSON["apps"]; ok {
 		for _, a := range summaryJSON["apps"].([]interface{}) {
@@ -502,10 +527,20 @@ func GetApps(summaryJSON map[string]interface{}) (Apps, error) {
 					environmentVar = make(map[string]interface{})
 				}
 			}
+			name := theApp["name"].(string)
+			appGuid := theApp["guid"].(string)
+			if guid, ok := appsList[name]; ok {
+				if !strings.EqualFold(appGuid,guid) {
+					log.Println("Found app guid different from space summary??")
+					log.Println("summary app guid: ",appGuid)
+					log.Println("real app guid: ", guid)
+				}
+				appGuid = guid
+			}
 			apps = append(apps,
 				App{
-					Guid:                    theApp["guid"].(string),
-					Name:                    theApp["name"].(string),
+					Guid:                    appGuid,
+					Name:                    name,
 					Memory:                  theApp["memory"].(float64),
 					Instances:               theApp["instances"].(float64),
 					DiskQuota:               theApp["disk_quota"].(float64),
