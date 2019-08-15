@@ -238,29 +238,33 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 		iorgs = append(iorgs, iorg)
 	}
 
-	chBits := make(chan string, 2)
+	b, _ := json.MarshalIndent(iorgs, "", "\t")
+	err := ioutil.WriteFile("imported_apps.json", b, 0644)
+	check(err)
+
+	var wg sync.WaitGroup
+	//chBits := make(chan string, 2)
 	i := 0
 	for _, org := range iorgs {
 		for _, space := range org.Spaces {
 			i += len(space.Apps) * 2
 			for _, app := range space.Apps {
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet, chBits)
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src, chBits)
+				wg.Add(2)
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet, &wg)
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src, &wg)
 			}
 		}
 	}
 	fmt.Println("Number of app bits to upload ", i)
-	for msg := range chBits {
-		i -= 1
-		fmt.Println(msg)
-		if i == 0 {
-			close(chBits)
-		}
-	}
+	//for msg := range chBits {
+	//	i -= 1
+	//	fmt.Println(msg)
+	//	if i == 0 {
+	//		close(chBits)
+	//	}
+	//}
 
-	b, _ := json.MarshalIndent(iorgs, "", "\t")
-	err := ioutil.WriteFile("imported_apps.json", b, 0644)
-	check(err)
+	wg.Wait()
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
 }
 

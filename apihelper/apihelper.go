@@ -185,7 +185,7 @@ type CFAPIHelper interface {
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error)
 	GetBlob(orgname string, spacename string, blobURL string, filename string, wg *sync.WaitGroup)
-	PutBlob(blobURL string, filename string, c chan string)
+	PutBlob(blobURL string, filename string, wg *sync.WaitGroup)
 	CheckOrg(name string, create bool) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
 	CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error)
@@ -760,16 +760,19 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 }
 
 //Upload file
-func (api *APIHelper) PutBlob(blobURL string, filename string, c chan string) {
+func (api *APIHelper) PutBlob(blobURL string, filename string, wg *sync.WaitGroup) {
 
 	var msg string
+
 	if strings.Contains(blobURL, "droplet") {
 		msg, _ = putDroplet(api, blobURL, filename)
 	}
 	if strings.Contains(blobURL, "bits") {
 		msg, _ = putSrc(api, blobURL, filename)
 	}
-	c <- msg
+	defer wg.Done()
+	log.Println(msg)
+	//c <- msg
 }
 
 type orgInput struct {
