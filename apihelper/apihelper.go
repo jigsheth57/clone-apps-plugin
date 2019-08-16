@@ -16,7 +16,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 	"log"
 
@@ -185,8 +184,8 @@ type CFAPIHelper interface {
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error)
-	GetBlob(orgname string, spacename string, blobURL string, filename string, wg *sync.WaitGroup)
-	PutBlob(blobURL string, filename string, wg *sync.WaitGroup)
+	GetBlob(orgname string, spacename string, blobURL string, filename string)
+	PutBlob(blobURL string, filename string)
 	CheckOrg(name string, create bool) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
 	CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error)
@@ -696,6 +695,7 @@ func retry(attempts int, sleep time.Duration, f func() error) error {
 
 		if attempts--; attempts > 0 {
 			// Add some randomness to prevent creating a Thundering Herd
+			log.Println("Retrying request again ...")
 			jitter := time.Duration(rand.Int63n(int64(sleep)))
 			sleep = sleep + jitter/2
 
@@ -713,7 +713,7 @@ type stop struct {
 }
 
 //Download file
-func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string, wg *sync.WaitGroup) {
+func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string) {
 	apiendpoint, err := api.cli.ApiEndpoint()
 	if nil != err {
 		return
@@ -791,11 +791,11 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		log.Println(retry_err)
 	}
 	//c <- filename
-	defer wg.Done()
+	//defer wg.Done()
 }
 
 //Upload file
-func (api *APIHelper) PutBlob(blobURL string, filename string, wg *sync.WaitGroup) {
+func (api *APIHelper) PutBlob(blobURL string, filename string) {
 
 	var msg string
 
@@ -805,7 +805,7 @@ func (api *APIHelper) PutBlob(blobURL string, filename string, wg *sync.WaitGrou
 	if strings.Contains(blobURL, "bits") {
 		msg, _ = putSrc(api, blobURL, filename)
 	}
-	defer wg.Done()
+	//defer wg.Done()
 	log.Println(msg)
 	//c <- msg
 }

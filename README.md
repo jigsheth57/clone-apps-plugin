@@ -69,6 +69,8 @@ $ cf install-plugin https://github.com/jigsheth57/clone-apps-plugin/blob/master/
 #####Install from Source (need to have [Go](http://golang.org/dl/) installed)
   ```
   $ go get github.com/cloudfoundry/cli
+  $ go get github.com/dustin/go-humanize
+  $ go get code.cloudfoundry.org/cli/plugin/models
   $ go get github.com/jigsheth57/clone-apps-plugin
   $ cd $GOPATH/src/github.com/jigsheth57/clone-apps-plugin
   $ go build

@@ -3,9 +3,7 @@ package models
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"io/ioutil"
-	"sync"
 
 	"net/url"
 
@@ -131,7 +129,7 @@ func (orgs *Orgs) ExportMetaOnly() string {
 func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	writeToJson(*orgs)
 	//chBits := make(chan string, 2)
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 	i := 0
 	for _, org := range *orgs {
 		for _, space := range org.Spaces {
@@ -139,15 +137,17 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
 				//if(download) {
-				wg.Add(2)
-				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", &wg)
-				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", &wg)
+				//wg.Add(2)
+				//go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", &wg)
+				//go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", &wg)
+				apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet")
+				apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src")
 				//}
 			}
 		}
 	}
-	log.Println("Number of app bits to download ", i)
-	wg.Wait()
+	//log.Println("Number of app bits to download ", i)
+	//wg.Wait()
 	//i = 4
 	//for msg := range chBits {
 	//	i -= 1
@@ -242,16 +242,16 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	err := ioutil.WriteFile("imported_apps.json", b, 0644)
 	check(err)
 
-	var wg sync.WaitGroup
+	//var wg sync.WaitGroup
 	//chBits := make(chan string, 2)
 	i := 0
 	for _, org := range iorgs {
 		for _, space := range org.Spaces {
 			i += len(space.Apps) * 2
 			for _, app := range space.Apps {
-				wg.Add(2)
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet, &wg)
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src, &wg)
+				//wg.Add(2)
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet)
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src)
 			}
 		}
 	}
@@ -264,7 +264,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	//	}
 	//}
 
-	wg.Wait()
+	//wg.Wait()
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
 }
 
