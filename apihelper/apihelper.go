@@ -157,8 +157,8 @@ var client *http.Client
 func init() {
 	tr := &http.Transport{
 		DialContext:(&net.Dialer{
-			Timeout:   60 * time.Second,
-			KeepAlive: 60 * time.Second,
+			Timeout:   120 * time.Second,
+			KeepAlive: 120 * time.Second,
 		}).DialContext,
 		MaxConnsPerHost: 10,
 		MaxIdleConnsPerHost: 10,
