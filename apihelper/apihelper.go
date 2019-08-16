@@ -738,7 +738,7 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		if err != nil {
 			log.Println(err)
 			log.Println("HTTP_URL: " + apiendpoint + blobURL)
-			log.Println("HTTP_STATUS: " + res.Status)
+			//log.Println("HTTP_STATUS: " + res.Status)
 			// This error will result in a retry
 			return err
 		}
