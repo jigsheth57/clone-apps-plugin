@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="24a23287-1501-4246-bc7e-de260ad570a4" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apihelper/apihelper.go" beforeDir="false" afterPath="$PROJECT_DIR$/apihelper/apihelper.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models/models.go" beforeDir="false" afterPath="$PROJECT_DIR$/models/models.go" afterDir="false" />
     </list>
@@ -20,7 +19,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" path="/usr/local/Cellar/go/1.12.7/libexec" />
+  <component name="GOROOT" path="/usr/local/Cellar/go/1.12.9/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>

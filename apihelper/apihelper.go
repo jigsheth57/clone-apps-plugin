@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"mime/multipart"
 	"net"
@@ -17,12 +18,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"log"
 
-	"github.com/cloudfoundry/cli/plugin"
-	"github.com/jigsheth57/clone-apps-plugin/cfcurl"
-	"github.com/dustin/go-humanize"
 	"code.cloudfoundry.org/cli/plugin/models"
+	"github.com/cloudfoundry/cli/plugin"
+	"github.com/dustin/go-humanize"
+	"github.com/jigsheth57/clone-apps-plugin/cfcurl"
+	"github.com/remeh/sizedwaitgroup"
 )
 
 var (
@@ -159,8 +160,8 @@ func init() {
 			Timeout:   120 * time.Second,
 			KeepAlive: 120 * time.Second,
 		}).DialContext,
-		MaxConnsPerHost: 10,
-		MaxIdleConnsPerHost: 10,
+		MaxConnsPerHost: 20,
+		MaxIdleConnsPerHost: 20,
 		DisableCompression: true,
 		IdleConnTimeout:    60 * time.Second,
 		ExpectContinueTimeout: 60 * time.Second,
@@ -184,8 +185,8 @@ type CFAPIHelper interface {
 	GetQuotaMemoryLimit(string) (float64, error)
 	GetOrgSpaces(string) (Spaces, error)
 	GetSpaceAppsAndServices(space Space) (Apps, Services, SecurityGroups, SecurityGroups, error)
-	GetBlob(orgname string, spacename string, blobURL string, filename string)
-	PutBlob(blobURL string, filename string)
+	GetBlob(orgname string, spacename string, blobURL string, filename string, swg *sizedwaitgroup.SizedWaitGroup)
+	PutBlob(blobURL string, filename string, swg *sizedwaitgroup.SizedWaitGroup)
 	CheckOrg(name string, create bool) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
 	CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error)
@@ -713,7 +714,7 @@ type stop struct {
 }
 
 //Download file
-func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string) {
+func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string, swg *sizedwaitgroup.SizedWaitGroup) {
 	apiendpoint, err := api.cli.ApiEndpoint()
 	if nil != err {
 		return
@@ -791,11 +792,11 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		log.Println(retry_err)
 	}
 	//c <- filename
-	//defer wg.Done()
+	defer swg.Done()
 }
 
 //Upload file
-func (api *APIHelper) PutBlob(blobURL string, filename string) {
+func (api *APIHelper) PutBlob(blobURL string, filename string, swg *sizedwaitgroup.SizedWaitGroup) {
 
 	var msg string
 
@@ -805,7 +806,7 @@ func (api *APIHelper) PutBlob(blobURL string, filename string) {
 	if strings.Contains(blobURL, "bits") {
 		msg, _ = putSrc(api, blobURL, filename)
 	}
-	//defer wg.Done()
+	defer swg.Done()
 	log.Println(msg)
 	//c <- msg
 }

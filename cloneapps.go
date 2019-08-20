@@ -46,7 +46,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 28,
+			Build: 29,
 		},
 		Commands: []plugin.Command{
 			{

@@ -2,12 +2,14 @@ package models
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
-
+	"log"
+	"math/rand"
 	"net/url"
+	"time"
 
 	"github.com/jigsheth57/clone-apps-plugin/apihelper"
+	"github.com/remeh/sizedwaitgroup"
 )
 
 type Org struct {
@@ -129,6 +131,13 @@ func (orgs *Orgs) ExportMetaOnly() string {
 func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	writeToJson(*orgs)
 	//chBits := make(chan string, 2)
+	rand.Seed(time.Now().UnixNano())
+	// Typical use-case:
+	// 1000+ files must be downloaded from fileserver as quick as possible
+	// but without overloading the fileserver, so only
+	// 20 routines should be started concurrently.
+	src_swg := sizedwaitgroup.New(10)
+	droplet_swg := sizedwaitgroup.New(10)
 	//var wg sync.WaitGroup
 	i := 0
 	for _, org := range *orgs {
@@ -137,17 +146,19 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			//download := (space.Name == "jigsheth")
 			for _, app := range space.Apps {
 				//if(download) {
-				//wg.Add(2)
-				//go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", &wg)
-				//go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", &wg)
-				apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet")
-				apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src")
+				droplet_swg.Add()
+				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet", &droplet_swg)
+				src_swg.Add()
+				go apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src", &src_swg)
+				//apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/droplet/download", url.PathEscape(app.Name)+"_"+app.Guid+".droplet")
+				//apiHelper.GetBlob(org.Name,space.Name,"/v2/apps/"+app.Guid+"/download", url.PathEscape(app.Name)+"_"+app.Guid+".src")
 				//}
 			}
 		}
 	}
-	//log.Println("Number of app bits to download ", i)
-	//wg.Wait()
+	log.Println("Number of app bits to download ", i)
+	droplet_swg.Wait()
+	src_swg.Wait()
 	//i = 4
 	//for msg := range chBits {
 	//	i -= 1
@@ -242,6 +253,14 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	err := ioutil.WriteFile("imported_apps.json", b, 0644)
 	check(err)
 
+	rand.Seed(time.Now().UnixNano())
+	// Typical use-case:
+	// 1000+ files must be downloaded from fileserver as quick as possible
+	// but without overloading the fileserver, so only
+	// 20 routines should be started concurrently.
+	src_swg := sizedwaitgroup.New(10)
+	droplet_swg := sizedwaitgroup.New(10)
+
 	//var wg sync.WaitGroup
 	//chBits := make(chan string, 2)
 	i := 0
@@ -249,13 +268,14 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 		for _, space := range org.Spaces {
 			i += len(space.Apps) * 2
 			for _, app := range space.Apps {
-				//wg.Add(2)
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet)
-				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src)
+				droplet_swg.Add()
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/droplet/upload", app.Droplet, &droplet_swg)
+				src_swg.Add()
+				go apiHelper.PutBlob("/v2/apps/"+app.Guid+"/bits", app.Src, &src_swg)
 			}
 		}
 	}
-	fmt.Println("Number of app bits to upload ", i)
+	log.Println("Number of app bits to upload ", i)
 	//for msg := range chBits {
 	//	i -= 1
 	//	fmt.Println(msg)
@@ -264,7 +284,8 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	//	}
 	//}
 
-	//wg.Wait()
+	droplet_swg.Wait()
+	src_swg.Wait()
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
 }
 
