@@ -713,6 +713,49 @@ type stop struct {
 	error
 }
 
+func logAppMetaData(api *APIHelper, blobURL string) {
+	// workaround to get real app guids
+	appguid := strings.Split(blobURL, "/")[3]
+	if appguid != "" {
+		appsJSON, err := cfcurl.Curl(api.cli, "/v2/apps/"+appguid)
+		if nil != err {
+			log.Println(err)
+			return
+		}
+		if _, ok := appsJSON["entity"]; ok {
+			entity := appsJSON["entity"].(map[string]interface{})
+			//log.Printf("%+v",entity)
+			name := entity["name"].(string)
+			if package_state, ok := entity["package_state"]; ok {
+				if nil != package_state {
+					log.Printf("app(%s,%s): package_state(%s)",name,appguid,package_state.(string))
+				}
+			}
+			if package_updated_at, ok := entity["package_updated_at"]; ok {
+				if nil != package_updated_at {
+					log.Printf("app(%s,%s): package_updated_at(%s)",name,appguid,package_updated_at.(string))
+				}
+			}
+			if staging_failed_reason, ok := entity["staging_failed_reason"]; ok {
+				if nil != staging_failed_reason {
+					log.Printf("app(%s,%s): staging_failed_reason(%s)",name,appguid,staging_failed_reason.(string))
+				}
+			}
+			if staging_failed_description, ok := entity["staging_failed_description"]; ok {
+				if nil != staging_failed_description {
+					log.Printf("app(%s,%s): staging_failed_reason(%s)",name,appguid,staging_failed_description.(string))
+				}
+			}
+			if docker_image, ok := entity["docker_image"]; ok {
+				if nil != docker_image {
+					log.Printf("app(%s,%s): docker_image(%s)",name,appguid,docker_image.(string))
+				}
+			}
+		}
+	}
+	return
+}
+
 //Download file
 func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, filename string, swg *sizedwaitgroup.SizedWaitGroup) {
 	apiendpoint, err := api.cli.ApiEndpoint()
@@ -759,6 +802,7 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
 			log.Println("Wrote file: ", errfilename)
+			//logAppMetaData(api,blobURL)
 			return fmt.Errorf("server error: %v", s)
 		case s == 404:
 			// Don't retry, it was client's fault
@@ -768,6 +812,7 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
 			log.Println("Wrote file: ", errfilename)
+			//logAppMetaData(api,blobURL)
 			return stop{fmt.Errorf("client error: %v", s)}
 		case s == 408:
 			// Retry timeout
@@ -777,6 +822,7 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 			err = ioutil.WriteFile(errfilename, body, 0644)
 			check(err)
 			log.Println("Wrote file: ", errfilename)
+			//logAppMetaData(api,blobURL)
 			return fmt.Errorf("client error: %v", s)
 		default:
 			// Happy
@@ -789,6 +835,8 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		}
 	})
 	if retry_err != nil {
+		log.Println("Error found!!")
+		logAppMetaData(api,blobURL)
 		log.Println(retry_err)
 	}
 	//c <- filename

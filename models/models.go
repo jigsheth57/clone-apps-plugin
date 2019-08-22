@@ -136,8 +136,8 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	// 1000+ files must be downloaded from fileserver as quick as possible
 	// but without overloading the fileserver, so only
 	// 20 routines should be started concurrently.
-	src_swg := sizedwaitgroup.New(10)
-	droplet_swg := sizedwaitgroup.New(10)
+	src_swg := sizedwaitgroup.New(1)
+	droplet_swg := sizedwaitgroup.New(1)
 	//var wg sync.WaitGroup
 	i := 0
 	for _, org := range *orgs {
