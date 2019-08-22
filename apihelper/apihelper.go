@@ -714,14 +714,37 @@ type stop struct {
 }
 
 func logAppMetaData(api *APIHelper, blobURL string) {
-	// workaround to get real app guids
+	apiendpoint, err := api.cli.ApiEndpoint()
+	if nil != err {
+		return
+	}
+	accessToken, err := api.cli.AccessToken()
+	if nil != err {
+		return
+	}
 	appguid := strings.Split(blobURL, "/")[3]
 	if appguid != "" {
-		appsJSON, err := cfcurl.Curl(api.cli, "/v2/apps/"+appguid)
+		req, _ := http.NewRequest("GET", apiendpoint+"/v2/apps/"+appguid, nil)
+		req.Header.Set("Authorization", accessToken)
+		res, err := client.Do(req)
+		if err != nil {
+			log.Println(err)
+			log.Println("HTTP_URL: " + apiendpoint+"/v2/apps/"+appguid)
+			return
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
 		if nil != err {
 			log.Println(err)
 			return
 		}
+		var f interface{}
+		err = json.Unmarshal([]byte(body), &f)
+		if nil != err {
+			log.Println(err)
+			return
+		}
+		appsJSON := f.(map[string]interface{})
 		if _, ok := appsJSON["entity"]; ok {
 			entity := appsJSON["entity"].(map[string]interface{})
 			//log.Printf("%+v",entity)
@@ -762,14 +785,6 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 	if nil != err {
 		return
 	}
-	//log.Println("URL: "+apiendpoint+blobURL)
-	//tr := &http.Transport{
-	//	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	//}
-	//client := &http.Client{
-	//	Transport: tr,
-	//	Timeout:   time.Second * 30,
-	//}
 	req, _ := http.NewRequest("GET", apiendpoint+blobURL, nil)
 	accessToken, err := api.cli.AccessToken()
 	if nil != err {
@@ -782,7 +797,6 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		if err != nil {
 			log.Println(err)
 			log.Println("HTTP_URL: " + apiendpoint + blobURL)
-			//log.Println("HTTP_STATUS: " + res.Status)
 			// This error will result in a retry
 			return err
 		}
@@ -835,7 +849,7 @@ func (api *APIHelper) GetBlob(orgname string, spacename string, blobURL string, 
 		}
 	})
 	if retry_err != nil {
-		log.Println("Error found!!")
+		//log.Println("Error found!!")
 		logAppMetaData(api,blobURL)
 		log.Println(retry_err)
 	}
