@@ -766,7 +766,7 @@ func logAppMetaData(api *APIHelper, blobURL string) {
 			}
 			if staging_failed_description, ok := entity["staging_failed_description"]; ok {
 				if nil != staging_failed_description {
-					log.Printf("app(%s,%s): staging_failed_reason(%s)",name,appguid,staging_failed_description.(string))
+					log.Printf("app(%s,%s): staging_failed_description(%s)",name,appguid,staging_failed_description.(string))
 				}
 			}
 			if docker_image, ok := entity["docker_image"]; ok {
@@ -1110,7 +1110,8 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 				Memory:                  mapp.Memory,
 				Instances:               mapp.Instances,
 				DiskQuota:               mapp.DiskQuota,
-				State:                   mapp.State,
+				//State:                   mapp.State,
+				State:                   "STOPPED",
 				Command:                 mapp.Command,
 				HealthCheckType:         mapp.HealthCheckType,
 				HealthCheckTimeout:      180,

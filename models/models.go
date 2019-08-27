@@ -258,8 +258,8 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	// 1000+ files must be downloaded from fileserver as quick as possible
 	// but without overloading the fileserver, so only
 	// 20 routines should be started concurrently.
-	src_swg := sizedwaitgroup.New(10)
-	droplet_swg := sizedwaitgroup.New(10)
+	src_swg := sizedwaitgroup.New(5)
+	droplet_swg := sizedwaitgroup.New(5)
 
 	//var wg sync.WaitGroup
 	//chBits := make(chan string, 2)
