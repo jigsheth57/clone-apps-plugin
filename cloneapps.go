@@ -17,8 +17,9 @@ type CloneAppsCmd struct {
 
 // contains CLI flag values
 type flagVal struct {
-	OrgName string
-	Download string
+	OrgName 	string
+	Download 	string
+	Domain		string
 }
 
 func ParseFlags(args []string) flagVal {
@@ -27,6 +28,7 @@ func ParseFlags(args []string) flagVal {
 	// Create flags
 	orgName := flagSet.String("o", "", "-o orgName")
 	bits := flagSet.String("d", "", "-d download")
+	domain := flagSet.String("ad", "", "-ad addtional_share_domain")
 
 	err := flagSet.Parse(args[1:])
 	if err != nil {
@@ -36,6 +38,7 @@ func ParseFlags(args []string) flagVal {
 	return flagVal{
 		OrgName: string(*orgName),
 		Download:  string(*bits),
+		Domain: string(*domain),
 	}
 }
 
@@ -46,7 +49,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 33,
+			Build: 34,
 		},
 		Commands: []plugin.Command{
 			{
@@ -64,9 +67,10 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 				Name:     "import-apps",
 				HelpText: "Import apps metadata (including service instances info), droplets & src code",
 				UsageDetails: plugin.Usage{
-					Usage: "cf import-apps [-o orgName]",
+					Usage: "cf import-apps [-o orgName] [-ad addtional_share_domain]",
 					Options: map[string]string{
 						"o": "organization",
+						"ad": "Addtional domain",
 					},
 				},
 			},
@@ -106,7 +110,9 @@ func (cmd *CloneAppsCmd) ExportAppsCmd(args []string) {
 }
 
 func (cmd *CloneAppsCmd) ImportAppsCmd(args []string) {
-	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper))
+	flagVals := ParseFlags(args)
+	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper,models.ImportFlags{OrgName:flagVals.OrgName,
+		Domain:flagVals.Domain}))
 }
 
 func (cmd *CloneAppsCmd) getOrgQuota() (models.Quotas, error) {

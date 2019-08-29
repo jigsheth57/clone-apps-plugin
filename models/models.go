@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/jigsheth57/clone-apps-plugin/apihelper"
@@ -118,6 +119,10 @@ type ImportedService struct {
 	Name string
 }
 
+type ImportFlags struct {
+	OrgName 	string
+	Domain		string
+}
 type IServices []ImportedService
 type IApps []ImportedApp
 type ISpaces []ImportedSpace
@@ -170,10 +175,15 @@ func (orgs *Orgs) ExportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 	return "Succefully exported apps metadata to apps.json file and downloaded all bits."
 }
 
-func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
+func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags) string {
 	orgs := readToJson()
 	var iorgs IOrgs
+	filterOrg := importFlags.OrgName != ""
+	addRoute := importFlags.Domain != ""
 	for _, org := range orgs {
+		if filterOrg && importFlags.OrgName != org.Name {
+			continue
+		}
 		output, err := apiHelper.CheckOrg(org.Name, true)
 		check(err)
 		iorg := ImportedOrg{
@@ -214,7 +224,15 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 			}
 			ispace.Services = iservices
 			var iapps IApps
+
 			for _, app := range space.Apps {
+				if addRoute {
+					if app.URLs != nil && len(app.URLs) > 0 {
+						url := app.URLs[0].(string)
+						hostname := strings.Split(url, ".")[0]
+						app.URLs = append(app.URLs, hostname+"."+importFlags.Domain)
+					}
+				}
 				mapp := apihelper.App{
 					Guid:                    app.Guid,
 					Name:                    app.Name,
@@ -226,11 +244,11 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper) string {
 					HealthCheckType:         app.HealthCheckType,
 					HealthCheckTimeout:      app.HealthCheckTimeout,
 					HealthCheckHttpEndpoint: app.HealthCheckHttpEndpoint,
-					Diego:          app.Diego,
-					EnableSsh:      app.EnableSsh,
-					EnviornmentVar: app.EnviornmentVar,
-					URLs:           app.URLs,
-					ServiceNames:   app.ServiceNames,
+					Diego:                   app.Diego,
+					EnableSsh:               app.EnableSsh,
+					EnviornmentVar:          app.EnviornmentVar,
+					URLs:                    app.URLs,
+					ServiceNames:            app.ServiceNames,
 				}
 				output, err := apiHelper.CheckApp(mapp, rservices, ispace.Guid, true)
 				check(err)
