@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -226,6 +227,11 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 			var iapps IApps
 
 			for _, app := range space.Apps {
+				if !fileExists(app.Name+"_"+app.Guid+".src") {
+					skip_message := org.Name+"/"+space.Name+"/"+app.Name+"("+app.Guid+")"
+					log.Println("Error: Skipping creating app "+skip_message)
+					continue
+				}
 				if addRoute {
 					if app.URLs != nil && len(app.URLs) > 0 {
 						url := app.URLs[0].(string)
@@ -305,6 +311,14 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 	droplet_swg.Wait()
 	src_swg.Wait()
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
 
 func writeToJson(orgs Orgs) {
