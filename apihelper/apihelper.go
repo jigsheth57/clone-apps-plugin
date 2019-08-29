@@ -136,10 +136,11 @@ type ImportedSpace struct {
 }
 
 type ImportedApp struct {
-	Guid    string
-	Name    string
-	Droplet string
-	Src     string
+	Guid    	string
+	Name    	string
+	Droplet 	string
+	Src     	string
+	OrgState	string
 }
 
 type ImportedService struct {
@@ -190,6 +191,7 @@ type CFAPIHelper interface {
 	CheckOrg(name string, create bool) (ImportedOrg, error)
 	CheckSpace(name string, orgguid string, create bool) (ImportedSpace, error)
 	CheckApp(mapp App, rservices IServices, spaceguid string, create bool) (ImportedApp, error)
+	StartApp(appguid string) (error)
 	CheckServiceInstance(service Service, spaceguid string, create bool) (ImportedService, error)
 }
 
@@ -1134,6 +1136,7 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 					Guid:    metadata["guid"].(string),
 					Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
 					Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
+					OrgState: mapp.State,
 				}
 				log.Println("App " + mapp.Name + " created.")
 			}
@@ -1158,23 +1161,39 @@ func (api *APIHelper) CheckApp(mapp App, rservices IServices, spaceguid string, 
 				appResource := appJSON["resources"].([]interface{})[0]
 				theApp := appResource.(map[string]interface{})
 				metadata := theApp["metadata"].(map[string]interface{})
-				log.Println("Found existing app: " + mapp.Name)
+				log.Println("Found existing app: " + mapp.Name+"("+metadata["guid"].(string)+")")
 				iapp = ImportedApp{
 					Name:    mapp.Name,
 					Guid:    metadata["guid"].(string),
 					Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
 					Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
+					OrgState: mapp.State,
 				}
 			}
 		}
 	} else {
+		log.Println(err)
 		iapp = ImportedApp{
 			Name:    mapp.Name,
 			Droplet: url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".droplet",
 			Src:     url.PathEscape(mapp.Name) + "_" + mapp.Guid + ".src",
+			OrgState: mapp.State,
 		}
 	}
 	return iapp, nil
+}
+
+func (api *APIHelper) StartApp(appguid string) (error) {
+	if appguid != "" {
+		log.Println("Starting app (" + appguid + ") with payload: " + "{\"state\":\"STARTED\"}")
+		_, err := httpRequest(api, "PUT", "/v2/apps/"+appguid, "{\"state\":\"STARTED\"}")
+		if nil != err {
+			log.Println("Error starting app: " + appguid)
+			log.Println(err)
+			return err
+		}
+	}
+	return nil
 }
 
 func getServiceInstanceGuid(rservices IServices, name string) (string, error) {

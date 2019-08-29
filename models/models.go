@@ -109,10 +109,11 @@ type ImportedSpace struct {
 }
 
 type ImportedApp struct {
-	Guid    string
-	Name    string
-	Droplet string
-	Src     string
+	Guid    		string
+	Name    		string
+	Droplet 		string
+	Src     		string
+	OrgState		string
 }
 
 type ImportedService struct {
@@ -121,9 +122,11 @@ type ImportedService struct {
 }
 
 type ImportFlags struct {
-	OrgName 	string
-	Domain		string
+	OrgName 		string
+	Domain			string
+	RestoreState	bool
 }
+
 type IServices []ImportedService
 type IApps []ImportedApp
 type ISpaces []ImportedSpace
@@ -234,9 +237,11 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 				}
 				if addRoute {
 					if app.URLs != nil && len(app.URLs) > 0 {
-						url := app.URLs[0].(string)
-						hostname := strings.Split(url, ".")[0]
-						app.URLs = append(app.URLs, hostname+"."+importFlags.Domain)
+						capp_urls := app.URLs
+						for _, url := range capp_urls {
+							hostname := strings.Split(url.(string), ".")[0]
+							app.URLs = append(app.URLs, hostname+"."+importFlags.Domain)
+						}
 					}
 				}
 				mapp := apihelper.App{
@@ -263,6 +268,7 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 					Name:    output.Name,
 					Droplet: output.Droplet,
 					Src:     output.Src,
+					OrgState: output.OrgState,
 				}
 				iapps = append(iapps, iapp)
 			}
@@ -310,6 +316,16 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 
 	droplet_swg.Wait()
 	src_swg.Wait()
+
+	if importFlags.RestoreState {
+		for _, org := range iorgs {
+			for _, space := range org.Spaces {
+				for _, app := range space.Apps {
+					apiHelper.StartApp(app.Guid)
+				}
+			}
+		}
+	}
 	return "Succefully imported apps metadata from apps.json file and uploaded all bits."
 }
 

@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/cloudfoundry/cli/plugin"
 	"github.com/jigsheth57/clone-apps-plugin/apihelper"
@@ -17,9 +18,10 @@ type CloneAppsCmd struct {
 
 // contains CLI flag values
 type flagVal struct {
-	OrgName 	string
-	Download 	string
-	Domain		string
+	OrgName 		string
+	Download 		string
+	Domain			string
+	RestoreState	string
 }
 
 func ParseFlags(args []string) flagVal {
@@ -29,6 +31,7 @@ func ParseFlags(args []string) flagVal {
 	orgName := flagSet.String("o", "", "-o orgName")
 	bits := flagSet.String("d", "", "-d download")
 	domain := flagSet.String("ad", "", "-ad addtional_share_domain")
+	restore_state := flagSet.String("s", "", "-s restore_state")
 
 	err := flagSet.Parse(args[1:])
 	if err != nil {
@@ -39,6 +42,7 @@ func ParseFlags(args []string) flagVal {
 		OrgName: string(*orgName),
 		Download:  string(*bits),
 		Domain: string(*domain),
+		RestoreState: string(*restore_state),
 	}
 }
 
@@ -49,7 +53,7 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 		Version: plugin.VersionType{
 			Major: 1,
 			Minor: 2,
-			Build: 35,
+			Build: 36,
 		},
 		Commands: []plugin.Command{
 			{
@@ -67,10 +71,11 @@ func (cmd *CloneAppsCmd) GetMetadata() plugin.PluginMetadata {
 				Name:     "import-apps",
 				HelpText: "Import apps metadata (including service instances info), droplets & src code",
 				UsageDetails: plugin.Usage{
-					Usage: "cf import-apps [-o orgName] [-ad addtional_share_domain]",
+					Usage: "cf import-apps [-o orgName] [-ad addtional_share_domain] [-s true]",
 					Options: map[string]string{
 						"o": "organization",
 						"ad": "Addtional domain",
+						"s": "Restore app state (true/false)",
 					},
 				},
 			},
@@ -111,8 +116,12 @@ func (cmd *CloneAppsCmd) ExportAppsCmd(args []string) {
 
 func (cmd *CloneAppsCmd) ImportAppsCmd(args []string) {
 	flagVals := ParseFlags(args)
+	restore_state := false
+	if s, err := strconv.ParseBool(flagVals.RestoreState); err == nil {
+		restore_state = s
+	}
 	fmt.Println(models.ImportMetaAndBits(cmd.apiHelper,models.ImportFlags{OrgName:flagVals.OrgName,
-		Domain:flagVals.Domain}))
+		Domain:flagVals.Domain, RestoreState:restore_state}))
 }
 
 func (cmd *CloneAppsCmd) getOrgQuota() (models.Quotas, error) {
