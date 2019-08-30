@@ -321,7 +321,9 @@ func ImportMetaAndBits(apiHelper apihelper.CFAPIHelper, importFlags ImportFlags)
 		for _, org := range iorgs {
 			for _, space := range org.Spaces {
 				for _, app := range space.Apps {
-					apiHelper.StartApp(app.Guid)
+					if app.OrgState != "" && app.OrgState == "STARTED" {
+						apiHelper.StartApp(app.Guid)
+					}
 				}
 			}
 		}
