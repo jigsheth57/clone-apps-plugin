@@ -1,8 +1,8 @@
 - name: Clone Apps
   description: Export & import apps metadata (including service instances info), droplets & src code
   version: _TAG_
-  created: 2018-03-01T00:00:00Z
-  updated: 2018-03-03T00:00:00Z
+  created: 2018-03-01T00:00:00CDT
+  updated: _TIME_
   company:
   authors:
   - name: Jignesh Sheth

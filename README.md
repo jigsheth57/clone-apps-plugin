@@ -7,48 +7,44 @@ This plugin will create new org and space based on the export metadata file. It 
 
 For human readable output:
 
+Export metadata from all orgs except **system & p-spring-cloud-services**
 ```
-➜  clone-apps-plugin git:(master) ✗ cf export-apps
-Succefully exported apps metadata to apps.json file.
-```
-
-Filter by Org Name
-
-```
-➜  clone-apps-plugin git:(master) ✗ cf export-apps -o Central
-Succefully exported apps metadata to apps.json file.
+➜  clone-apps-plugin git:(master) ✗ cf export-apps > export-logs.log 2>&1
 ```
 
-Download metadata & bits:
-
+Export metadata from specific Org Name
 ```
-➜  clone-apps-plugin git:(master) ✗ cf export-apps -d download
-Number of app bits to download  4
-Wrote file:  server-c2c_11d5ec05-8919-481d-833d-48a37384ea2a.src
-Wrote file:  timetracking_04571ea8-7741-4a50-a28d-9c2136c2235c.src
-Wrote file:  server-c2c_11d5ec05-8919-481d-833d-48a37384ea2a.droplet
-Wrote file:  timetracking_04571ea8-7741-4a50-a28d-9c2136c2235c.droplet
-Succefully exported apps metadata to apps.json file and downloaded all bits.
+➜  clone-apps-plugin git:(master) ✗ cf export-apps -o Central > export-logs.log 2>&1
 ```
 
-Import metadata & bits:
-
+Export metadata & download source package & droplet from all orgs except **system & p-spring-cloud-services**:
 ```
-➜  clone-apps-plugin git:(master) ✗ cf import-apps
-App server-c2c created.
-Route (server-c2c.cfapps.io) created.
-Route (server-c2c.cfapps.io) bounded to app server-c2c.
-Service instance (my-logs) bounded to app server-c2c.
-App timetracking created.
-Route (timetracking-quick-bandicoot.cfapps.io) created.
-Route (timetracking-quick-bandicoot.cfapps.io) bounded to app timetracking.
-Service instance (timetrackingdb) bounded to app timetracking.
-Number of app bits to upload  4
-Uploaded src server-c2c_11d5ec05-8919-481d-833d-48a37384ea2a.src (201 Created)
-Uploaded src timetracking_04571ea8-7741-4a50-a28d-9c2136c2235c.src (201 Created)
-Uploaded droplet server-c2c_11d5ec05-8919-481d-833d-48a37384ea2a.droplet (201 Created)
-Uploaded droplet timetracking_04571ea8-7741-4a50-a28d-9c2136c2235c.droplet (201 Created)
-Succefully imported apps metadata from apps.json file and uploaded all bits.
+➜  clone-apps-plugin git:(master) ✗ cf export-apps -d download > export-logs.log 2>&1
+```
+
+Export metadata & download source package & droplet from specific Org Name:
+```
+➜  clone-apps-plugin git:(master) ✗ cf export-apps -o Central -d download > export-logs.log 2>&1
+```
+
+Import metadata & source package & droplet based on apps.json file in current directory:
+```
+➜  clone-apps-plugin git:(master) ✗ cf import-apps > import-logs.log 2>&1
+```
+
+Import metadata & source package & droplet from specific Org Name based on apps.json file in current directory:
+```
+➜  clone-apps-plugin git:(master) ✗ cf import-apps -o Central > import-logs.log 2>&1
+```
+
+Import metadata & source package & droplet from specific Org Name based on apps.json file in current directory and create additional route based on supplied shared domain:
+```
+➜  clone-apps-plugin git:(master) ✗ cf import-apps -o Central -ad apps.internal > import-logs.log 2>&1
+```
+
+Import metadata & source package & droplet from specific Org Name based on apps.json file in current directory and create additional route based on supplied shared domain and restore original application state:
+```
+➜  clone-apps-plugin git:(master) ✗ cf import-apps -o Central -ad apps.internal -s true > import-logs.log 2>&1
 ```
 
 ##Installation
